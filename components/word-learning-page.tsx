@@ -87,16 +87,16 @@ function SettingsPopover({ genre, setGenre, vibe, setVibe, complexity, setComple
               Vibe
             </Label>
             <div className="flex items-center justify-between gap-4">
-              <span className="text-xs text-muted-foreground">Whimsical</span>
-              <Slider
+                <span className="text-xs text-muted-foreground">Whimsical</span>
+                <Slider
                 id="vibe"
                 min={0}
                 max={100}
                 step={1}
                 value={[vibe]}
-                onValueChange={(val) => setVibe(val[0])}
+                onValueChange={(val: number[]) => setVibe(val[0])}
                 className="flex-1"
-              />
+                />
               <span className="text-xs text-muted-foreground">Dark</span>
             </div>
             <p className="text-xs text-muted-foreground text-center">{vibe}% dark</p>
@@ -115,7 +115,7 @@ function SettingsPopover({ genre, setGenre, vibe, setVibe, complexity, setComple
                 max={100}
                 step={1}
                 value={[complexity]}
-                onValueChange={(val) => setComplexity(val[0])}
+                onValueChange={(val: number[]) => setComplexity(val[0])}
                 className="flex-1"
               />
               <span className="text-xs text-muted-foreground">Academic</span>

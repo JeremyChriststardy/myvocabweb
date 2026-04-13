@@ -123,3 +123,8 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* For 3D flip effect on the flashcard modal */
+.rotate-y-180 {
+  transform: rotateY(180deg);
+}

@@ -235,8 +235,8 @@ export function LibraryPage() {
               >
                 <Checkbox
                   checked={selectedWordIds.includes(word.id)}
-                  onCheckedChange={(checked) =>
-                    handleWordToggle(word.id, checked as boolean)
+                  onCheckedChange={(checked: boolean | undefined) =>
+                    handleWordToggle(word.id, !!checked)
                   }
                 />
                 <div className="min-w-0 flex-1">
