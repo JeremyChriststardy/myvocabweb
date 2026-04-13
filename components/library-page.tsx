@@ -27,7 +27,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Folder, Plus, ArrowLeft, Trash2 } from "lucide-react"
+import { Folder, Plus, ArrowLeft, Trash2, Layers } from "lucide-react"
+
+import { FlashcardModal } from "@/components/FlashcardModal"
+
 
 export function LibraryPage() {
   const searchParams = useSearchParams()
@@ -42,6 +45,10 @@ export function LibraryPage() {
   const [selectedWordIds, setSelectedWordIds] = useState<string[]>([])
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const [folderToDelete, setFolderToDelete] = useState<string | null>(null)
+
+  const [flashcardOpen, setFlashcardOpen] = useState(false)
+  const [selectFolderOpen, setSelectFolderOpen] = useState(false)
+  const [flashcardFolderId, setFlashcardFolderId] = useState<string | null>(null)
 
   const selectedFolder = folders.find((f) => f.id === selectedFolderId)
   const wordsInFolder = selectedFolderId ? getWordsInFolder(selectedFolderId) : []
@@ -98,6 +105,24 @@ export function LibraryPage() {
     setSelectWordsOpen(true)
   }
 
+    // Handler for flashcards button in FolderHeader
+  const handleFlashcards = () => {
+    setFlashcardFolderId(selectedFolderId)
+    setFlashcardOpen(true)
+  }
+
+  // Handler for flashcards button in Library (no folder selected)
+  const handleLibraryFlashcards = () => {
+    setSelectFolderOpen(true)
+  }
+
+  // When a folder is picked from the select modal
+  const handlePickFolder = (folderId: string) => {
+    setFlashcardFolderId(folderId)
+    setSelectFolderOpen(false)
+    setFlashcardOpen(true)
+  }
+
   return (
     <>
       {selectedFolderId && selectedFolder ? (
@@ -109,8 +134,9 @@ export function LibraryPage() {
             onBack={() => setSelectedFolderId(null)}
             onAddWords={handleAddWords}
             onQuiz={() => {}}
-            onFlashcards={() => {}}
             isSystemFolder={isSystemFolder(selectedFolder.id)}
+            onFlashcards={handleFlashcards}
+
           />
 
           {wordsInFolder.length > 0 ? (
@@ -186,8 +212,48 @@ export function LibraryPage() {
             <Plus className="h-4 w-4" />
             Create a new Folder
           </Button>
+          <Button
+            variant="outline"
+            className="w-full gap-2 mt-2"
+            onClick={handleLibraryFlashcards}
+          >
+            <Layers className="h-4 w-4" />
+            Train with Flashcards
+          </Button>
         </div>
       )}
+
+      {/* Folder selection modal for flashcards */}
+      <Dialog open={selectFolderOpen} onOpenChange={setSelectFolderOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Select a folder to train</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            {folders
+              .filter((f) => !isSystemFolder(f.id))
+              .map((folder) => (
+                <button
+                  key={folder.id}
+                  className="w-full text-left p-3 rounded border hover:bg-accent"
+                  onClick={() => handlePickFolder(folder.id)}
+                >
+                  {folder.name} ({getWordsInFolder(folder.id).length} words)
+                </button>
+              ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Flashcard Modal */}
+      <FlashcardModal
+        open={flashcardOpen}
+        onClose={() => setFlashcardOpen(false)}
+        folderId={flashcardFolderId}
+
+        // Optionally pass folderId or words here
+      />
+
 
       {/* Create Folder Modal */}
       <Dialog open={createFolderOpen} onOpenChange={setCreateFolderOpen}>
@@ -236,7 +302,7 @@ export function LibraryPage() {
                 <Checkbox
                   checked={selectedWordIds.includes(word.id)}
                   onCheckedChange={(checked) =>
-                    handleWordToggle(word.id, checked as boolean)
+                    handleWordToggle(word.id, checked === true)
                   }
                 />
                 <div className="min-w-0 flex-1">

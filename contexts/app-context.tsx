@@ -224,7 +224,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
         .order('created_at', { ascending: true }) // Hero tip: Keep them in order!
 
       if (!foldersError && foldersData) {
-        const mappedFolders: Folder[] = foldersData.map(f => ({
+        interface FolderDB {
+          id: string;
+          name: string;
+          is_deletable: boolean;
+          created_at: string;
+        }
+
+        const mappedFolders: Folder[] = (foldersData as FolderDB[]).map((f: FolderDB) => ({
           id: f.id,
           name: f.name,
           isDeletable: f.is_deletable, // Note: f.is_deletable is snake_case from DB
