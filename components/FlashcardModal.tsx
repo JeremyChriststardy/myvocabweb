@@ -42,58 +42,64 @@ export function FlashcardModal({ open, onClose, folderId }: FlashcardModalProps)
 
    const currentWord = words[currentIndex]
 
+  // ...existing imports and code...
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-      <div
-        ref={modalRef}
-        className={cn(
-          "relative w-[350px] min-h-[220px] bg-card rounded-xl shadow-2xl flex flex-col items-center justify-center transition-transform duration-500",
-          flipped ? "rotate-y-180" : ""
-        )}
-        tabIndex={-1}
-      >
-        <button
-          className="absolute top-3 right-3 text-muted-foreground hover:text-foreground"
-          onClick={onClose}
-          aria-label="Close"
+      <div className="flashcard-perspective">
+        <div
+          ref={modalRef}
+          className={cn(
+            "flashcard-inner bg-card rounded-xl shadow-2xl",
+            flipped && "flashcard-flipped"
+          )}
+          tabIndex={-1}
+          style={{ width: 350, minHeight: 220 }}
         >
-          <X className="w-5 h-5" />
-        </button>
-    {/* Card Content */}
-        <div className={cn("flex flex-col items-center justify-center w-full h-full", flipped ? "hidden" : "")}>
-          <div className="text-lg font-semibold mb-6">
-            {currentWord ? currentWord.word : "No words in this folder"}
-          </div>
-          <div className="flex gap-3 mt-8">
-            <button
-              className="rounded-full bg-muted p-2 hover:bg-accent"
-              aria-label="Previous"
-              disabled={currentIndex === 0}
-              onClick={() => setCurrentIndex((i) => Math.max(0, i - 1))}
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-            <button className="rounded-full bg-green-100 text-green-700 p-2 hover:bg-green-200" aria-label="Mark Right">
-              <Check className="w-5 h-5" />
-            </button>
-            <button className="rounded-full bg-red-100 text-red-700 p-2 hover:bg-red-200" aria-label="Mark Wrong">
-              <XCircle className="w-5 h-5" />
-            </button>
-            <button
-              className="rounded-full bg-muted p-2 hover:bg-accent"
-              aria-label="Next"
-              disabled={currentIndex === words.length - 1}
-              onClick={() => setCurrentIndex((i) => Math.min(words.length - 1, i + 1))}
-            >
-              <ChevronRight className="w-5 h-5" />
-            </button>
+          {/* Close button (positioned absolutely) */}
+          <button
+            className="absolute top-3 right-3 text-muted-foreground hover:text-foreground z-10"
+            onClick={onClose}
+            aria-label="Close"
+          >
+            <X className="w-5 h-5" />
+          </button>
+          {/* Front Face */}
+          <div className="flashcard-face">
+            <div className="text-lg font-semibold mb-6">
+              {currentWord ? currentWord.word : "No words in this folder"}
             </div>
-        </div>
-        <div className={cn("flex flex-col items-center justify-center w-full h-full", flipped ? "" : "hidden")}>
-          <div className="text-lg font-semibold mb-6">
-            {currentWord ? currentWord.definition : ""}
+            <div className="flex gap-3 mt-8">
+              <button
+                className="rounded-full bg-muted p-2 hover:bg-accent"
+                aria-label="Previous"
+                disabled={currentIndex === 0}
+                onClick={() => setCurrentIndex((i) => Math.max(0, i - 1))}
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <button className="rounded-full bg-green-100 text-green-700 p-2 hover:bg-green-200" aria-label="Mark Right">
+                <Check className="w-5 h-5" />
+              </button>
+              <button className="rounded-full bg-red-100 text-red-700 p-2 hover:bg-red-200" aria-label="Mark Wrong">
+                <XCircle className="w-5 h-5" />
+              </button>
+              <button
+                className="rounded-full bg-muted p-2 hover:bg-accent"
+                aria-label="Next"
+                disabled={currentIndex === words.length - 1}
+                onClick={() => setCurrentIndex((i) => Math.min(words.length - 1, i + 1))}
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </div>
           </div>
-          {/* You can add more content here */}
+          {/* Back Face */}
+          <div className="flashcard-face flashcard-back">
+            <div className="text-lg font-semibold mb-6">
+              {currentWord ? currentWord.definition : ""}
+            </div>
+          </div>
         </div>
       </div>
     </div>

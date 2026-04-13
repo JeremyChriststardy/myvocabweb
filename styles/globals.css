@@ -128,3 +128,33 @@
 .rotate-y-180 {
   transform: rotateY(180deg);
 }
+
+/* 3D Flip Card Structure */
+.flashcard-perspective {
+  perspective: 1000px;
+}
+.flashcard-inner {
+  position: relative;
+  width: 350px;
+  min-height: 220px;
+  transition: transform 0.5s;
+  transform-style: preserve-3d;
+}
+.flashcard-flipped {
+  transform: rotateY(180deg);
+}
+.flashcard-face {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  top: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.flashcard-back {
+  transform: rotateY(180deg);
+}
