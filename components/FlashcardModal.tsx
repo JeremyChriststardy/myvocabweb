@@ -19,6 +19,8 @@ export function FlashcardModal({ open, onClose, folderId }: FlashcardModalProps)
 
   // Get words for the selected folder
   const words = folderId ? getWordsInFolder(folderId) : []
+  const total = words.length
+  const done = currentIndex + 1
 
   // Reset state when folder changes or modal opens
   useEffect(() => {
@@ -28,12 +30,13 @@ export function FlashcardModal({ open, onClose, folderId }: FlashcardModalProps)
     setIncorrectCount(0)
   }, [folderId, open])
 
+  // Spacebar flip fix: listen on window, only when modal is open and not focused on an input
   useEffect(() => {
     if (!open) return
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.code === "Space") {
+      if (e.code === "Space" && !e.repeat) {
         e.preventDefault()
-        setFlipped((f) => !f)
+        setFlipped(f => !f)
       }
     }
     window.addEventListener("keydown", handleKeyDown)
@@ -44,88 +47,100 @@ export function FlashcardModal({ open, onClose, folderId }: FlashcardModalProps)
 
   const currentWord = words[currentIndex]
 
-  // Handler for marking correct
-  const handleCorrect = () => {
-    setCorrectCount((c) => c + 1)
-    if (currentIndex < words.length - 1) {
-      setCurrentIndex((i) => i + 1)
+  // Handlers
+  const handlePrev = () => {
+    if (currentIndex > 0) {
+      setCurrentIndex(i => i - 1)
       setFlipped(false)
     }
   }
-
-  // Handler for marking incorrect
-  const handleIncorrect = () => {
-    setIncorrectCount((c) => c + 1)
+  const handleNext = () => {
     if (currentIndex < words.length - 1) {
-      setCurrentIndex((i) => i + 1)
+      setCurrentIndex(i => i + 1)
+      setFlipped(false)
+    }
+  }
+  const handleCorrect = () => {
+    setCorrectCount(c => c + 1)
+    if (currentIndex < words.length - 1) {
+      setCurrentIndex(i => i + 1)
+      setFlipped(false)
+    }
+  }
+  const handleIncorrect = () => {
+    setIncorrectCount(c => c + 1)
+    if (currentIndex < words.length - 1) {
+      setCurrentIndex(i => i + 1)
       setFlipped(false)
     }
   }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-      {/* Close button */}
-      <button
-        className="fixed top-8 right-8 text-muted-foreground hover:text-foreground z-50"
-        onClick={onClose}
-        aria-label="Close"
+      {/* Outer modal window */}
+      <div
+        ref={modalRef}
+        className="relative bg-card rounded-2xl shadow-2xl flex flex-col items-center justify-center px-8 py-8"
+        style={{ minWidth: 420, minHeight: 420 }}
       >
-        <X className="w-6 h-6" />
-      </button>
-      <div className="flex flex-col items-center">
-        <div className="flashcard-perspective mb-6">
-          <div
-            ref={modalRef}
-            className={cn(
-              "flashcard-inner bg-card rounded-xl shadow-2xl",
-              flipped && "flashcard-flipped"
-            )}
-            tabIndex={-1}
-            style={{ width: 350, minHeight: 220 }}
-            onClick={() => setFlipped((f) => !f)}
-          >
-            {/* Front Face */}
-            <div className="flashcard-face cursor-pointer">
-              <div className="text-lg font-semibold mb-6">
-                {currentWord ? currentWord.word : "No words in this folder"}
+        {/* Close button */}
+        <button
+          className="absolute top-4 right-4 text-muted-foreground hover:text-foreground z-10"
+          onClick={onClose}
+          aria-label="Close"
+        >
+          <X className="w-6 h-6" />
+        </button>
+        {/* Stats */}
+        <div className="absolute top-4 left-4 text-xs font-semibold text-muted-foreground z-10">
+          {done} / {total}
+        </div>
+        {/* Navigation buttons (left/right) */}
+        <button
+          className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-muted p-2 hover:bg-accent z-10"
+          aria-label="Previous"
+          disabled={currentIndex === 0}
+          onClick={handlePrev}
+        >
+          <ChevronLeft className="w-6 h-6" />
+        </button>
+        <button
+          className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-muted p-2 hover:bg-accent z-10"
+          aria-label="Next"
+          disabled={currentIndex === words.length - 1}
+          onClick={handleNext}
+        >
+          <ChevronRight className="w-6 h-6" />
+        </button>
+        {/* Centered flipping card */}
+        <div className="flex flex-col items-center justify-center" style={{ minHeight: 260 }}>
+          <div className="flashcard-perspective">
+            <div
+              className={cn(
+                "flashcard-inner bg-background rounded-xl shadow-lg cursor-pointer",
+                flipped && "flashcard-flipped"
+              )}
+              style={{ width: 320, minHeight: 180 }}
+              onClick={() => setFlipped(f => !f)}
+              tabIndex={0}
+            >
+              {/* Front Face */}
+              <div className="flashcard-face">
+                <div className="text-lg font-semibold mb-6">
+                  {currentWord ? currentWord.word : "No words in this folder"}
+                </div>
               </div>
-              <div className="flex gap-3 mt-8">
-                <button
-                  className="rounded-full bg-muted p-2 hover:bg-accent"
-                  aria-label="Previous"
-                  disabled={currentIndex === 0}
-                  onClick={e => {
-                    e.stopPropagation()
-                    setCurrentIndex(i => Math.max(0, i - 1))
-                    setFlipped(false)
-                  }}
-                >
-                  <ChevronLeft className="w-5 h-5" />
-                </button>
-                <button
-                  className="rounded-full bg-muted p-2 hover:bg-accent"
-                  aria-label="Next"
-                  disabled={currentIndex === words.length - 1}
-                  onClick={e => {
-                    e.stopPropagation()
-                    setCurrentIndex(i => Math.min(words.length - 1, i + 1))
-                    setFlipped(false)
-                  }}
-                >
-                  <ChevronRight className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-            {/* Back Face */}
-            <div className="flashcard-face flashcard-back cursor-pointer">
-              <div className="text-lg font-semibold mb-6">
-                {currentWord ? currentWord.definition : ""}
+              {/* Back Face */}
+              <div className="flashcard-face flashcard-back">
+                <div className="text-lg font-semibold mb-6">
+                  {currentWord ? currentWord.definition : ""}
+                </div>
               </div>
             </div>
           </div>
         </div>
         {/* Correct/Incorrect Buttons always visible below the card */}
-        <div className="flex gap-6 mt-2">
+        <div className="flex gap-6 mt-6">
           <button
             className="rounded-full bg-green-100 text-green-700 px-6 py-2 hover:bg-green-200 flex items-center gap-2 text-base font-semibold"
             aria-label="Mark Right"
