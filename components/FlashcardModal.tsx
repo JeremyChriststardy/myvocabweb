@@ -3,18 +3,18 @@ import { X, ChevronLeft, ChevronRight, Check, XCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useApp } from "@/contexts/app-context"
 
-
 interface FlashcardModalProps {
   open: boolean
   onClose: () => void
   folderId?: string | null
-
 }
 
 export function FlashcardModal({ open, onClose, folderId }: FlashcardModalProps) {
-    const { getWordsInFolder } = useApp()
+  const { getWordsInFolder } = useApp()
   const [flipped, setFlipped] = useState(false)
-    const [currentIndex, setCurrentIndex] = useState(0)
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const [correctCount, setCorrectCount] = useState(0)
+  const [incorrectCount, setIncorrectCount] = useState(0)
   const modalRef = useRef<HTMLDivElement>(null)
 
   // Get words for the selected folder
@@ -24,6 +24,8 @@ export function FlashcardModal({ open, onClose, folderId }: FlashcardModalProps)
   useEffect(() => {
     setCurrentIndex(0)
     setFlipped(false)
+    setCorrectCount(0)
+    setIncorrectCount(0)
   }, [folderId, open])
 
   useEffect(() => {
@@ -40,12 +42,37 @@ export function FlashcardModal({ open, onClose, folderId }: FlashcardModalProps)
 
   if (!open || !folderId) return null
 
-   const currentWord = words[currentIndex]
+  const currentWord = words[currentIndex]
 
-  // ...existing imports and code...
+  // Handler for marking correct
+  const handleCorrect = () => {
+    setCorrectCount((c) => c + 1)
+    if (currentIndex < words.length - 1) {
+      setCurrentIndex((i) => i + 1)
+      setFlipped(false)
+    }
+  }
+
+  // Handler for marking incorrect
+  const handleIncorrect = () => {
+    setIncorrectCount((c) => c + 1)
+    if (currentIndex < words.length - 1) {
+      setCurrentIndex((i) => i + 1)
+      setFlipped(false)
+    }
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+      {/* Close button OUTSIDE the flipping card, so always visible */}
+      <button
+        className="absolute top-8 right-8 text-muted-foreground hover:text-foreground z-50"
+        onClick={onClose}
+        aria-label="Close"
+        style={{ position: "fixed" }}
+      >
+        <X className="w-5 h-5" />
+      </button>
       <div className="flashcard-perspective">
         <div
           ref={modalRef}
@@ -56,14 +83,6 @@ export function FlashcardModal({ open, onClose, folderId }: FlashcardModalProps)
           tabIndex={-1}
           style={{ width: 350, minHeight: 220 }}
         >
-          {/* Close button (positioned absolutely) */}
-          <button
-            className="absolute top-3 right-3 text-muted-foreground hover:text-foreground z-10"
-            onClick={onClose}
-            aria-label="Close"
-          >
-            <X className="w-5 h-5" />
-          </button>
           {/* Front Face */}
           <div className="flashcard-face">
             <div className="text-lg font-semibold mb-6">
@@ -78,11 +97,23 @@ export function FlashcardModal({ open, onClose, folderId }: FlashcardModalProps)
               >
                 <ChevronLeft className="w-5 h-5" />
               </button>
-              <button className="rounded-full bg-green-100 text-green-700 p-2 hover:bg-green-200" aria-label="Mark Right">
+              <button
+                className="rounded-full bg-green-100 text-green-700 p-2 hover:bg-green-200 flex items-center gap-1"
+                aria-label="Mark Right"
+                onClick={handleCorrect}
+                disabled={currentIndex === words.length - 1 && !currentWord}
+              >
                 <Check className="w-5 h-5" />
+                <span className="text-xs font-bold">{correctCount}</span>
               </button>
-              <button className="rounded-full bg-red-100 text-red-700 p-2 hover:bg-red-200" aria-label="Mark Wrong">
+              <button
+                className="rounded-full bg-red-100 text-red-700 p-2 hover:bg-red-200 flex items-center gap-1"
+                aria-label="Mark Wrong"
+                onClick={handleIncorrect}
+                disabled={currentIndex === words.length - 1 && !currentWord}
+              >
                 <XCircle className="w-5 h-5" />
+                <span className="text-xs font-bold">{incorrectCount}</span>
               </button>
               <button
                 className="rounded-full bg-muted p-2 hover:bg-accent"
