@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
       headers: {
         "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
         "Content-Type": "application/json",
-        "HTTP-Referer": "https://myvocabapp.vercel.app",
+        "HTTP-Referer": "https://myvocabweb.vercel.app",
         "X-Title": "MyVocabApp",
       },
       body: JSON.stringify({
