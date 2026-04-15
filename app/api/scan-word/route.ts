@@ -94,7 +94,11 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({
         model: "google/gemini-embedding-001",
         input: detectedDefinition.trim(),
-        dimensions: 768
+        dimensions: 768,
+        provider: {
+        "sort": "throughput", // This tells OpenRouter to pick the most stable path
+        "allow_fallbacks": true
+        }
       })
     });
 
