@@ -10,6 +10,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
 };
 
+
 // 2. ADD THIS: Handle the "Preflight" OPTIONS request
 // Android/iOS fetch will send an OPTIONS request first. If this is missing, the POST fails.
 export async function OPTIONS() {
