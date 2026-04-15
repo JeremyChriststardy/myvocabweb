@@ -42,7 +42,7 @@ async function runOnce() {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          model: "google/gemini-embedding-001",
+          model: "qwen/qwen3-embedding-4b",
           input: inputs,
           dimensions: 768, // Matches your halfvec(768)
           encoding_format: "float"

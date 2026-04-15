@@ -93,7 +93,7 @@ export async function POST(req: NextRequest) {
         "X-Title": "MyVocabApp",
       },
       body: JSON.stringify({
-        model: "google/gemini-embedding-001",
+        model: "qwen/qwen3-embedding-4b",
         input: detectedDefinition.trim(),
         dimensions: 768,
         provider: {
