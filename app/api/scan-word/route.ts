@@ -87,7 +87,9 @@ export async function POST(req: NextRequest) {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://myvocabapp.vercel.app",
+        "X-Title": "MyVocabApp",
       },
       body: JSON.stringify({
         model: "google/gemini-embedding-001",
@@ -95,6 +97,13 @@ export async function POST(req: NextRequest) {
         dimensions: 768
       })
     });
+
+    // DEBUG: Let's see exactly what OpenRouter says
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`❌ OpenRouter Error (${response.status}):`, errorText);
+      throw new Error(`OpenRouter failed: ${response.status} - ${errorText}`);
+    }
 
     const embeddingJson = await response.json();
     const queryVector = embeddingJson?.data?.[0]?.embedding;
