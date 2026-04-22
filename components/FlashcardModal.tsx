@@ -124,7 +124,7 @@ export function FlashcardModal({ open, onClose, folderId }: FlashcardModalProps)
           <div className="flashcard-perspective">
             <div
               className={cn(
-                "flashcard-inner bg-background rounded-xl shadow-lg cursor-pointer flex items-center justify-center",
+                "flashcard-inner bg-background rounded-xl shadow-lg cursor-pointer flex items-center justify-center border-2 border-black",
                 flipped && "flashcard-flipped"
               )}
               style={{ width: 320, minHeight: 180 }}
@@ -141,15 +141,16 @@ export function FlashcardModal({ open, onClose, folderId }: FlashcardModalProps)
         )}
         {/* Definition in big window, only when flipped */}
         {flipped && (
-          <div className="flex items-center justify-center w-[320px] min-h-[180px] bg-background rounded-xl shadow-lg cursor-pointer"
-            onClick={() => setFlipped(f => !f)}
-            tabIndex={0}
-          >
-            <div className="text-lg font-semibold">
-              {currentWord ? currentWord.definition : ""}
-            </div>
+        <div
+          className="bg-muted rounded-xl shadow-inner flex items-center justify-center min-w-[320px] min-h-[180px] cursor-pointer border-4 border-black"
+          onClick={() => setFlipped(f => !f)}
+          tabIndex={0}
+        >
+          <div className="text-lg font-semibold text-center px-4">
+            {currentWord ? currentWord.definition : ""}
           </div>
-        )}
+        </div>
+      )}
       </div>
       {/* Correct/Incorrect Buttons always visible below the card */}
       <div className="flex gap-6 mt-6">
