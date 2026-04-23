@@ -1,5 +1,11 @@
 import { useEffect, useRef, useState } from "react"
-import { X, ChevronLeft, ChevronRight, Check, XCircle } from "lucide-react"
+import {
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Check,
+  XCircle,
+} from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useApp } from "@/contexts/app-context"
 
@@ -9,292 +15,314 @@ interface FlashcardModalProps {
   folderId?: string | null
 }
 
-function PieChart({ got, missed, skipped }: { got: number, missed: number, skipped: number }) {
-  const total = got + missed + skipped
-  const gotAngle = (got / total) * 360
-  const missedAngle = (missed / total) * 360
-  const skippedAngle = 360 - gotAngle - missedAngle
+function PieChart({
+  got,
+  missed,
+  skipped,
+}: {
+  got: number
+  missed: number
+  skipped: number
+}) {
+  const total = got + missed + skipped || 1
 
-  // Pie chart segments
-  const getPath = (startAngle: number, angle: number) => {
-    const r = 40, cx = 50, cy = 50
+  const getSlice = (
+    start: number,
+    value: number,
+    fill: string
+  ) => {
+    const angle = (value / total) * 360
+    const r = 40
+    const cx = 50
+    const cy = 50
+
     const rad = (deg: number) => (Math.PI / 180) * deg
-    const x1 = cx + r * Math.cos(rad(startAngle))
-    const y1 = cy + r * Math.sin(rad(startAngle))
-    const x2 = cx + r * Math.cos(rad(startAngle + angle))
-    const y2 = cy + r * Math.sin(rad(startAngle + angle))
+    const x1 = cx + r * Math.cos(rad(start))
+    const y1 = cy + r * Math.sin(rad(start))
+    const x2 = cx + r * Math.cos(rad(start + angle))
+    const y2 = cy + r * Math.sin(rad(start + angle))
+
     const largeArc = angle > 180 ? 1 : 0
-    return [
-      `M ${cx} ${cy}`,
-      `L ${x1} ${y1}`,
-      `A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2}`,
-      'Z'
-    ].join(' ')
+
+    return (
+      <path
+        d={`M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z`}
+        fill={fill}
+      />
+    )
   }
+
   let start = 0
-  const gotPath = <path d={getPath(start, gotAngle)} fill="#22c55e" /> // green
-  start += gotAngle
-  const missedPath = <path d={getPath(start, missedAngle)} fill="#ef4444" /> // red
-  start += missedAngle
-  const skippedPath = <path d={getPath(start, skippedAngle)} fill="#a3a3a3" /> // gray
+  const gotSlice = getSlice(start, got, "#22c55e")
+  start += (got / total) * 360
+
+  const missedSlice = getSlice(start, missed, "#ef4444")
+  start += (missed / total) * 360
+
+  const skippedSlice = getSlice(start, skipped, "#a3a3a3")
 
   return (
     <svg width={100} height={100} viewBox="0 0 100 100">
-      {gotPath}
-      {missedPath}
-      {skippedPath}
+      {gotSlice}
+      {missedSlice}
+      {skippedSlice}
     </svg>
   )
 }
 
-export function FlashcardModal({ open, onClose, folderId }: FlashcardModalProps) {
+export function FlashcardModal({
+  open,
+  onClose,
+  folderId,
+}: FlashcardModalProps) {
   const { getWordsInFolder } = useApp()
-  const [flipped, setFlipped] = useState(false)
-  const [currentIndex, setCurrentIndex] = useState(0)
-  const [correctCount, setCorrectCount] = useState(0)
-  const [incorrectCount, setIncorrectCount] = useState(0)
   const modalRef = useRef<HTMLDivElement>(null)
 
+  const [flipped, setFlipped] = useState(false)
+  const [currentIndex, setCurrentIndex] = useState(0)
+
+  const [correctCount, setCorrectCount] = useState(0)
+  const [incorrectCount, setIncorrectCount] = useState(0)
+
   const [showStats, setShowStats] = useState(false)
+  const [showMasteredPrompt, setShowMasteredPrompt] = useState(true)
+  const [includeMastered, setIncludeMastered] = useState(false)
+
   const [startTime, setStartTime] = useState<number | null>(null)
   const [endTime, setEndTime] = useState<number | null>(null)
-  const [skippedCount, setSkippedCount] = useState(0)
-  const [confetti, setConfetti] = useState(false)
 
-  // Get words for the selected folder
-  const words = folderId ? getWordsInFolder(folderId) : []
+  const allWords = folderId ? getWordsInFolder(folderId) : []
+
+  const words = includeMastered
+    ? allWords
+    : allWords.filter((w) => w.status !== "Mastered")
+
   const total = words.length
-  const done = currentIndex + 1
 
-  // Reset state when folder changes or modal opens
-  useEffect(() => {
-  setCurrentIndex(0)
-  setFlipped(false)
-  setCorrectCount(0)
-  setIncorrectCount(0)
-  setSkippedCount(0)
-  setShowStats(false)
-  setConfetti(false)
-  setStartTime(Date.now())
-  setEndTime(null)
-}, [folderId, open])
-
-  // Spacebar flip fix: listen on window, only when modal is open and not focused on an input
-  useEffect(() => {
-    if (!open) return
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.code === "Space" && !e.repeat) {
-        e.preventDefault()
-        setFlipped(f => !f)
-      }
-    }
-    window.addEventListener("keydown", handleKeyDown)
-    return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [open])
-
-  useEffect(() => {
-  if (open) {
-    modalRef.current?.focus();
-  }
-  }, [open]);
-
-  if (!open || !folderId) return null
+  const skippedCount =
+    total - correctCount - incorrectCount
 
   const currentWord = words[currentIndex]
 
-  // Handlers
-  const handlePrev = () => {
-    if (currentIndex > 0) {
-      setCurrentIndex(i => i - 1)
-      setFlipped(false)
-    }
-  }
-  const handleNext = () => {
-    if (currentIndex < words.length - 1) {
-      setCurrentIndex(i => i + 1)
-      setFlipped(false)
-    } else {
-    handleFinish()
-    }
-  }
-  const handleCorrect = () => {
-  setCorrectCount(c => c + 1)
-  if (currentIndex < words.length - 1) {
-    setCurrentIndex(i => i + 1)
+  useEffect(() => {
+    if (!open) return
+
     setFlipped(false)
-  } else {
-    handleFinish()
-  }
-}
-const handleIncorrect = () => {
-  setIncorrectCount(c => c + 1)
-  if (currentIndex < words.length - 1) {
-    setCurrentIndex(i => i + 1)
-    setFlipped(false)
-  } else {
-    handleFinish()
-  }
-}
+    setCurrentIndex(0)
+    setCorrectCount(0)
+    setIncorrectCount(0)
+    setShowStats(false)
+    setShowMasteredPrompt(true)
+
+    setStartTime(Date.now())
+    setEndTime(null)
+  }, [open, folderId])
+
+  useEffect(() => {
+    if (!open) return
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.code === "Space" && !e.repeat) {
+        e.preventDefault()
+        setFlipped((v) => !v)
+      }
+    }
+
+    window.addEventListener("keydown", onKeyDown)
+    return () =>
+      window.removeEventListener("keydown", onKeyDown)
+  }, [open])
 
   const handleFinish = () => {
-  setEndTime(Date.now())
-  setShowStats(true)
-  setConfetti(true)
-  setTimeout(() => setConfetti(false), 1500) // Hide confetti after 1.5s
+    setEndTime(Date.now())
+    setShowStats(true)
   }
 
-  const renderConfetti = () => {
-  if (!confetti) return null
-  const colors = ['#22c55e', '#ef4444', '#a3a3a3', '#facc15', '#3b82f6']
-  return Array.from({ length: 30 }).map((_, i) => (
-    <div
-      key={i}
-      className="confetti-piece"
-      style={{
-        left: `${Math.random() * 100}%`,
-        background: colors[i % colors.length],
-        animationDelay: `${Math.random()}s`
-      }}
-    />
-  ))
-}
+  const goNext = () => {
+    if (currentIndex === total - 1) {
+      handleFinish()
+      return
+    }
+
+    setCurrentIndex((i) => i + 1)
+    setFlipped(false)
+  }
+
+  const goPrev = () => {
+    if (currentIndex === 0) return
+
+    setCurrentIndex((i) => i - 1)
+    setFlipped(false)
+  }
+
+  const markCorrect = () => {
+    setCorrectCount((v) => v + 1)
+    goNext()
+  }
+
+  const markIncorrect = () => {
+    setIncorrectCount((v) => v + 1)
+    goNext()
+  }
+
+  if (!open || !folderId) return null
+
+  if (showMasteredPrompt) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+        <div className="bg-card rounded-2xl shadow-2xl p-8 min-w-[360px]">
+          <label className="flex gap-3 items-center text-lg mb-6">
+            <input
+              type="checkbox"
+              checked={includeMastered}
+              onChange={(e) =>
+                setIncludeMastered(e.target.checked)
+              }
+            />
+            Include mastered cards?
+          </label>
+
+          <button
+            className="rounded bg-primary text-primary-foreground px-6 py-2 w-full"
+            onClick={() =>
+              setShowMasteredPrompt(false)
+            }
+          >
+            Start Flashcards
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   if (showStats) {
-  const total = correctCount + incorrectCount + skippedCount
-  const percent = total ? Math.round((correctCount / total) * 100) : 0
-  const timeTaken = endTime && startTime ? ((endTime - startTime) / 1000).toFixed(1) : "0.0"
+    const answered =
+      correctCount + incorrectCount + skippedCount
+
+    const percent = answered
+      ? Math.round(
+          (correctCount / answered) * 100
+        )
+      : 0
+
+    const time =
+      startTime && endTime
+        ? ((endTime - startTime) / 1000).toFixed(1)
+        : "0"
+
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+        <div className="bg-card rounded-2xl shadow-2xl p-8 min-w-[420px]">
+          <div className="flex gap-8 items-center">
+            <PieChart
+              got={correctCount}
+              missed={incorrectCount}
+              skipped={skippedCount}
+            />
+
+            <div className="space-y-2">
+              <div>Correct: {correctCount}</div>
+              <div>Wrong: {incorrectCount}</div>
+              <div>Skipped: {skippedCount}</div>
+            </div>
+          </div>
+
+          <div className="mt-6 text-center">
+            <div className="text-2xl font-bold">
+              {percent}% Correct
+            </div>
+            <div className="text-sm">
+              {time}s
+            </div>
+          </div>
+
+          <button
+            onClick={onClose}
+            className="mt-6 rounded bg-primary text-primary-foreground px-6 py-2 w-full"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-      <div className="relative bg-card rounded-2xl shadow-2xl flex flex-col items-center justify-center px-8 py-8" style={{ minWidth: 420, minHeight: 420 }}>
-        {renderConfetti()}
-        <div className="flex flex-col items-center gap-6">
-          <div className="flex items-center gap-8">
-            <PieChart got={correctCount} missed={incorrectCount} skipped={skippedCount} />
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-3">
-                <span className="text-green-600 font-bold">Got it</span>
-                <span className="text-lg">{correctCount}</span>
+      <div
+        ref={modalRef}
+        className="relative bg-card rounded-2xl shadow-2xl px-8 py-8 min-w-[420px] min-h-[420px]"
+      >
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4"
+        >
+          <X />
+        </button>
+
+        <div className="absolute top-4 left-4 text-sm">
+          {currentIndex + 1} / {total}
+        </div>
+
+        {currentIndex > 0 && (
+          <button
+            onClick={goPrev}
+            className="absolute left-2 top-1/2 -translate-y-1/2"
+          >
+            <ChevronLeft />
+          </button>
+        )}
+
+        <button
+          onClick={goNext}
+          className="absolute right-2 top-1/2 -translate-y-1/2"
+        >
+          <ChevronRight />
+        </button>
+
+        <div className="flex justify-center items-center mt-16">
+          <div
+            className="relative w-[320px] h-[180px] cursor-pointer [perspective:1000px]"
+            onClick={() =>
+              setFlipped((v) => !v)
+            }
+          >
+            <div
+              className={cn(
+                "relative w-full h-full duration-700 [transform-style:preserve-3d]",
+                flipped &&
+                  "[transform:rotateY(180deg)]"
+              )}
+            >
+              <div className="absolute inset-0 bg-background rounded-xl border shadow flex items-center justify-center [backface-visibility:hidden]">
+                {currentWord?.word}
               </div>
-              <div className="flex items-center gap-3">
-                <span className="text-red-600 font-bold">Missed</span>
-                <span className="text-lg">{incorrectCount}</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-gray-600 font-bold">Skipped</span>
-                <span className="text-lg">{skippedCount}</span>
+
+              <div className="absolute inset-0 bg-muted rounded-xl border shadow flex items-center justify-center px-4 text-center [transform:rotateY(180deg)] [backface-visibility:hidden]">
+                {currentWord?.definition}
               </div>
             </div>
           </div>
-          <div className="text-center mt-2">
-            <div className="text-2xl font-bold">{correctCount}/{total}</div>
-            <div className="text-sm text-muted-foreground">{percent}% correct</div>
-            <div className="text-xs text-muted-foreground mt-2">Time: {timeTaken} seconds</div>
-          </div>
+        </div>
+
+        <div className="flex justify-center gap-6 mt-8">
           <button
-            className="mt-6 rounded bg-primary text-primary-foreground px-6 py-2 font-semibold"
-            onClick={onClose}
+            onClick={markCorrect}
+            className="px-6 py-2 rounded-full bg-green-100 text-green-700 flex gap-2"
           >
-            Close
+            <Check />
+            {correctCount}
+          </button>
+
+          <button
+            onClick={markIncorrect}
+            className="px-6 py-2 rounded-full bg-red-100 text-red-700 flex gap-2"
+          >
+            <XCircle />
+            {incorrectCount}
           </button>
         </div>
       </div>
     </div>
   )
 }
-
-  return (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-    {/* Outer modal window */}
-    <div
-      ref={modalRef}
-      className="relative bg-card rounded-2xl shadow-2xl flex flex-col items-center justify-center px-8 py-8"
-      style={{ minWidth: 420, minHeight: 420 }}
-    >
-      {/* Close button */}
-      <button
-        className="absolute top-4 right-4 text-muted-foreground hover:text-foreground z-10"
-        onClick={onClose}
-        aria-label="Close"
-      >
-        <X className="w-6 h-6" />
-      </button>
-      {/* Stats */}
-      <div className="absolute top-4 left-4 text-xs font-semibold text-muted-foreground z-10">
-        {done} / {total}
-      </div>
-      {/* Navigation buttons (left/right) */}
-      <button
-        className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-muted p-2 hover:bg-accent z-10"
-        aria-label="Previous"
-        disabled={currentIndex === 0}
-        onClick={handlePrev}
-      >
-        <ChevronLeft className="w-6 h-6" />
-      </button>
-      <button
-        className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-muted p-2 hover:bg-accent z-10"
-        aria-label="Next"
-        disabled={currentIndex === words.length - 1}
-        onClick={handleNext}
-      >
-        <ChevronRight className="w-6 h-6" />
-      </button>
-      {/* Centered flipping card (shows word only when not flipped) */}
-      <div className="flex flex-col items-center justify-center" style={{ minHeight: 260 }}>
-        {!flipped && (
-          <div className="flashcard-perspective">
-            <div
-              className={cn(
-                "flashcard-inner bg-background rounded-xl shadow-lg cursor-pointer flex items-center justify-center border-2 border-black",
-                flipped && "flashcard-flipped"
-              )}
-              style={{ width: 320, minHeight: 180 }}
-              onClick={() => setFlipped(f => !f)}
-              tabIndex={0}
-            >
-              <div className="flashcard-face flex items-center justify-center w-full h-full">
-                <div className="text-lg font-semibold">
-                  {currentWord ? currentWord.word : "No words in this folder"}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-        {/* Definition in big window, only when flipped */}
-        {flipped && (
-        <div
-          className="bg-muted rounded-xl shadow-inner flex items-center justify-center min-w-[320px] min-h-[180px] cursor-pointer border-2 border-black cursor-pointer"
-          style={{ width: 320, minHeight: 180, maxWidth: 320, maxHeight: 180 }}
-          onClick={() => setFlipped(f => !f)}
-          tabIndex={0}
-        >
-          <div className="text-lg font-semibold text-center px-4 break-words overflow-auto w-full h-full">
-            {currentWord ? currentWord.definition : ""}
-          </div>
-        </div>
-      )}
-      </div>
-      {/* Correct/Incorrect Buttons always visible below the card */}
-      <div className="flex gap-6 mt-6">
-        <button
-          className="rounded-full bg-green-100 text-green-700 px-6 py-2 hover:bg-green-200 flex items-center gap-2 text-base font-semibold"
-          aria-label="Mark Right"
-          onClick={handleCorrect}
-          disabled={!currentWord}
-        >
-          <Check className="w-5 h-5" />
-          {correctCount}
-        </button>
-        <button
-          className="rounded-full bg-red-100 text-red-700 px-6 py-2 hover:bg-red-200 flex items-center gap-2 text-base font-semibold"
-          aria-label="Mark Wrong"
-          onClick={handleIncorrect}
-          disabled={!currentWord}
-        >
-          <XCircle className="w-5 h-5" />
-          {incorrectCount}
-        </button>
-      </div>
-    </div>
-  </div>
-  )}
