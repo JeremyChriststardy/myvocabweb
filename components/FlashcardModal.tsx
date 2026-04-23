@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react"
-import {
-  X,
+import {X,
   ChevronLeft,
   ChevronRight,
   Check,
@@ -37,8 +36,10 @@ function PieChart({
     const cy = 50
 
     const rad = (deg: number) => (Math.PI / 180) * deg
+
     const x1 = cx + r * Math.cos(rad(start))
     const y1 = cy + r * Math.sin(rad(start))
+
     const x2 = cx + r * Math.cos(rad(start + angle))
     const y2 = cy + r * Math.sin(rad(start + angle))
 
@@ -48,6 +49,7 @@ function PieChart({
       <path
         d={`M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z`}
         fill={fill}
+        className="pie-grow"
       />
     )
   }
@@ -62,7 +64,12 @@ function PieChart({
   const skippedSlice = getSlice(start, skipped, "#a3a3a3")
 
   return (
-    <svg width={100} height={100} viewBox="0 0 100 100">
+    <svg
+      width={260}
+      height={260}
+      viewBox="0 0 100 100"
+      className="pie-enter"
+    >
       {gotSlice}
       {missedSlice}
       {skippedSlice}
@@ -87,6 +94,7 @@ export function FlashcardModal({
   const [showStats, setShowStats] = useState(false)
   const [showMasteredPrompt, setShowMasteredPrompt] = useState(true)
   const [includeMastered, setIncludeMastered] = useState(false)
+  const [confetti, setConfetti] = useState(false)
 
   const [startTime, setStartTime] = useState<number | null>(null)
   const [endTime, setEndTime] = useState<number | null>(null)
@@ -136,7 +144,24 @@ export function FlashcardModal({
   const handleFinish = () => {
     setEndTime(Date.now())
     setShowStats(true)
+    setConfetti(true)
+
+    setTimeout(() => {
+    setConfetti(false)
+  }, 3000)
   }
+  const restartSession = () => {
+  setFlipped(false)
+  setCurrentIndex(0)
+  setCorrectCount(0)
+  setIncorrectCount(0)
+  setShowStats(false)
+  setConfetti(false)
+
+  setStartTime(Date.now())
+  setEndTime(null)
+}
+
 
   const goNext = () => {
     if (currentIndex === total - 1) {
@@ -196,56 +221,106 @@ export function FlashcardModal({
   }
 
   if (showStats) {
-    const answered =
-      correctCount + incorrectCount + skippedCount
+  const answered =
+    correctCount + incorrectCount + skippedCount
 
-    const percent = answered
-      ? Math.round(
-          (correctCount / answered) * 100
-        )
-      : 0
+  const percent = answered
+    ? Math.round((correctCount / answered) * 100)
+    : 0
 
-    const time =
-      startTime && endTime
-        ? ((endTime - startTime) / 1000).toFixed(1)
-        : "0"
+  const time =
+    startTime && endTime
+      ? ((endTime - startTime) / 1000).toFixed(1)
+      : "0"
 
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-        <div className="bg-card rounded-2xl shadow-2xl p-8 min-w-[420px]">
-          <div className="flex gap-8 items-center">
+  const renderConfetti = () => {
+    if (!confetti) return null
+
+    const colors = [
+      "#22c55e",
+      "#ef4444",
+      "#3b82f6",
+      "#facc15",
+      "#a855f7",
+    ]
+
+    return Array.from({ length: 45 }).map((_, i) => (
+      <div
+        key={i}
+        className="confetti-piece"
+        style={{
+          left: `${Math.random() * 100}%`,
+          background: colors[i % colors.length],
+          animationDelay: `${Math.random()}s`,
+        }}
+      />
+    ))
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+      <div className="relative bg-card rounded-2xl shadow-2xl px-10 py-8 min-w-[720px] min-h-[420px] overflow-hidden">
+        {renderConfetti()}
+
+        <div className="grid grid-cols-2 items-center gap-8 h-full">
+          {/* LEFT */}
+          <div className="relative flex items-center justify-center">
             <PieChart
               got={correctCount}
               missed={incorrectCount}
               skipped={skippedCount}
             />
 
-            <div className="space-y-2">
-              <div>Correct: {correctCount}</div>
-              <div>Wrong: {incorrectCount}</div>
-              <div>Skipped: {skippedCount}</div>
+            <div className="absolute w-36 h-36 rounded-full bg-white shadow-lg flex flex-col items-center justify-center text-black">
+              <div className="text-3xl font-bold">
+                {correctCount}/{total}
+              </div>
+
+              <div className="text-sm font-medium mt-1">
+                {percent}% correct
+              </div>
+
+              <div className="text-xs text-gray-500 mt-1">
+                {time}s
+              </div>
             </div>
           </div>
 
-          <div className="mt-6 text-center">
-            <div className="text-2xl font-bold">
-              {percent}% Correct
+          {/* RIGHT */}
+          <div className="flex flex-col justify-center gap-5 text-xl">
+            <div className="flex justify-between">
+              <span className="text-green-600 font-bold">
+                Got it
+              </span>
+              <span>{correctCount}</span>
             </div>
-            <div className="text-sm">
-              {time}s
-            </div>
-          </div>
 
-          <button
-            onClick={onClose}
-            className="mt-6 rounded bg-primary text-primary-foreground px-6 py-2 w-full"
-          >
-            Close
-          </button>
+            <div className="flex justify-between">
+              <span className="text-red-600 font-bold">
+                Missed
+              </span>
+              <span>{incorrectCount}</span>
+            </div>
+
+            <div className="flex justify-between">
+              <span className="text-gray-600 font-bold">
+                Skipped
+              </span>
+              <span>{skippedCount}</span>
+            </div>
+
+            <button
+              onClick={onClose}
+              className="mt-8 rounded bg-primary text-primary-foreground px-6 py-2 font-semibold"
+            >
+              Close
+            </button>
+          </div>
         </div>
       </div>
-    )
-  }
+    </div>
+  )
+}
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">

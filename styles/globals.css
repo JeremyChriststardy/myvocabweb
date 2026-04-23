@@ -171,15 +171,57 @@
 }
 
 /* Confetti animation */
-@keyframes confetti-fall {
-  0% { transform: translateY(-100vh) rotateZ(0deg);}
-  100% { transform: translateY(100vh) rotateZ(360deg);}
-}
 .confetti-piece {
   position: absolute;
+  top: -20px;
   width: 10px;
   height: 18px;
   border-radius: 2px;
-  opacity: 0.8;
-  animation: confetti-fall 1.2s linear forwards;
+  opacity: 0.9;
+  animation: confetti-fall 3s linear forwards;
+}
+
+@keyframes confetti-fall {
+  0% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateY(500px) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+.pie-enter {
+  animation: piePop 0.6s ease-out;
+}
+
+.pie-grow {
+  transform-origin: center;
+  animation: sliceGrow 0.8s ease-out;
+}
+
+@keyframes piePop {
+  0% {
+    transform: scale(0.4) rotate(-30deg);
+    opacity: 0;
+  }
+
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+@keyframes sliceGrow {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
