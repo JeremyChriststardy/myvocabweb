@@ -1,4 +1,5 @@
 "use client"
+
 import { supabase } from "@/lib/supabase"
 import { createContext, useContext, useState, useCallback, type ReactNode, useEffect, useRef } from "react"
 
@@ -271,25 +272,39 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
   let mounted = true
-
+  
   const init = async () => {
-    // 1. Get the current session immediately
-    const { data: { session } } = await supabase.auth.getSession()
-    
-    if (mounted) {
-      if (session) {
-        // If there's a session, we still "load" until stats are fetched
-        await handleAuth(session)
-      } else {
-        // If no session, we aren't loading anymore (Middleware will redirect anyway)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      
+      if (mounted) {
+        if (session) {
+          await handleAuth(session)
+        } else {
+          setIsLoading(false)
+        }
+      }
+    } catch (error) {
+      console.error("Auth init error:", error)
+      if (mounted) {
         setIsLoading(false)
       }
     }
   }
-
+  
   init()
-  // ... rest of your listener
-}, [handleAuth])
+
+  const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    if (mounted) {
+      handleAuth(session)
+    }
+  })
+
+  return () => {
+    mounted = false
+    subscription.unsubscribe()
+  }
+}, [handleAuth]) // ← Note: handleAuth is already memoized with useCallback
 
   // ------------------ AUTH ACTIONS ------------------
   const login = useCallback(async (email: string, password: string): Promise<AuthResult> => {
