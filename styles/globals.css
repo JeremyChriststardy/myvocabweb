@@ -173,53 +173,52 @@
 /* Confetti animation */
 .confetti-piece {
   position: absolute;
-  top: -20px;
-  width: 10px;
-  height: 18px;
+  top: -10px;
+  width: 8px;
+  height: 14px;
   border-radius: 2px;
-  opacity: 0.9;
-  animation: confetti-fall 3s linear forwards;
+  z-index: 50;
+  animation: confetti-fall 2s linear forwards;
 }
 
 @keyframes confetti-fall {
   0% {
-    transform: translateY(0) rotate(0deg);
+    transform: translateY(0) rotate(0);
     opacity: 1;
   }
 
   100% {
-    transform: translateY(500px) rotate(720deg);
+    transform: translateY(300px) rotate(720deg);
     opacity: 0;
   }
 }
 
-.pie-enter {
-  animation: piePop 0.6s ease-out;
-}
-
-.pie-grow {
+.pie-root {
+  animation: pie-scale-in 1s ease-out;
   transform-origin: center;
-  animation: sliceGrow 0.8s ease-out;
 }
 
-@keyframes piePop {
+.pie-slice {
+  transform-origin: center;
+  animation: pie-sweep 1s ease-out;
+}
+
+@keyframes pie-scale-in {
   0% {
-    transform: scale(0.4) rotate(-30deg);
+    transform: scale(0.5) rotate(-90deg);
     opacity: 0;
   }
-
   100% {
-    transform: scale(1) rotate(0deg);
+    transform: scale(1) rotate(0);
     opacity: 1;
   }
 }
 
-@keyframes sliceGrow {
+@keyframes pie-sweep {
   0% {
     transform: scale(0);
     opacity: 0;
   }
-
   100% {
     transform: scale(1);
     opacity: 1;

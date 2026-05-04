@@ -8,34 +8,44 @@ import {X,
 import { cn } from "@/lib/utils"
 import { useApp } from "@/contexts/app-context"
 
+const correctSound = useRef<HTMLAudioElement | null>(null)
+const wrongSound = useRef<HTMLAudioElement | null>(null)
+const winSound = useRef<HTMLAudioElement | null>(null)
+
+useEffect(() => {
+  correctSound.current = new Audio("/sounds/ding.mp3")
+  wrongSound.current = new Audio("/sounds/buzz.mp3")
+  winSound.current = new Audio("/sounds/victory.mp3")
+}, [])
+
+const play = (ref: React.RefObject<HTMLAudioElement | null>) => {
+  if (!ref.current) return
+  ref.current.currentTime = 0
+  ref.current.play().catch(() => {})
+}
+
 interface FlashcardModalProps {
   open: boolean
   onClose: () => void
   folderId?: string | null
 }
 
-function PieChart({
-  got,
-  missed,
-  skipped,
-}: {
-  got: number
-  missed: number
-  skipped: number
-}) {
+function PieChart({ got, missed, skipped }: { got: number; missed: number; skipped: number }) {
   const total = got + missed + skipped || 1
 
-  const getSlice = (
-    start: number,
-    value: number,
-    fill: string
-  ) => {
+  const safeAngle = (value: number) => {
     const angle = (value / total) * 360
+    return angle >= 360 ? 359.999 : angle
+  }
+
+  const createArc = (start: number, value: number, color: string) => {
+    const angle = safeAngle(value)
+
     const r = 40
     const cx = 50
     const cy = 50
 
-    const rad = (deg: number) => (Math.PI / 180) * deg
+    const rad = (d: number) => (Math.PI / 180) * d
 
     const x1 = cx + r * Math.cos(rad(start))
     const y1 = cy + r * Math.sin(rad(start))
@@ -48,31 +58,26 @@ function PieChart({
     return (
       <path
         d={`M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z`}
-        fill={fill}
-        className="pie-grow"
+        fill={color}
+        className="pie-slice"
       />
     )
   }
 
   let start = 0
-  const gotSlice = getSlice(start, got, "#22c55e")
-  start += (got / total) * 360
+  const g = createArc(start, got, "#22c55e")
+  start += safeAngle(got)
 
-  const missedSlice = getSlice(start, missed, "#ef4444")
-  start += (missed / total) * 360
+  const m = createArc(start, missed, "#ef4444")
+  start += safeAngle(missed)
 
-  const skippedSlice = getSlice(start, skipped, "#a3a3a3")
+  const s = createArc(start, skipped, "#a3a3a3")
 
   return (
-    <svg
-      width={260}
-      height={260}
-      viewBox="0 0 100 100"
-      className="pie-enter"
-    >
-      {gotSlice}
-      {missedSlice}
-      {skippedSlice}
+    <svg width={240} height={240} viewBox="0 0 100 100" className="pie-root">
+      {g}
+      {m}
+      {s}
     </svg>
   )
 }
@@ -144,11 +149,11 @@ export function FlashcardModal({
   const handleFinish = () => {
     setEndTime(Date.now())
     setShowStats(true)
+    play(winSound)
     setConfetti(true)
 
     setTimeout(() => {
-    setConfetti(false)
-  }, 3000)
+    setConfetti(false)}, 2000)
   }
   const restartSession = () => {
   setFlipped(false)
@@ -181,11 +186,13 @@ export function FlashcardModal({
   }
 
   const markCorrect = () => {
+    play(correctSound)
     setCorrectCount((v) => v + 1)
     goNext()
   }
 
   const markIncorrect = () => {
+    play(wrongSound)
     setIncorrectCount((v) => v + 1)
     goNext()
   }
@@ -259,7 +266,7 @@ export function FlashcardModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-      <div className="relative bg-card rounded-2xl shadow-2xl px-10 py-8 min-w-[720px] min-h-[420px] overflow-hidden">
+      <div className="relative bg-card rounded-2xl shadow-2xl px-10 py-8 w-[420px] min-h-[420px] overflow-hidden">
         {renderConfetti()}
 
         <div className="grid grid-cols-2 items-center gap-8 h-full">
@@ -287,34 +294,39 @@ export function FlashcardModal({
           </div>
 
           {/* RIGHT */}
-          <div className="flex flex-col justify-center gap-5 text-xl">
-            <div className="flex justify-between">
-              <span className="text-green-600 font-bold">
-                Got it
-              </span>
-              <span>{correctCount}</span>
+          <div className="flex flex-col h-full">
+            <div className="flex flex-col gap-3 mt-6">
+              <div className="flex justify-between">
+                <span className="text-green-600 font-bold">Got it</span>
+                <span>{correctCount}</span>
+              </div>
+
+              <div className="flex justify-between">
+                <span className="text-red-600 font-bold">Missed</span>
+                <span>{incorrectCount}</span>
+              </div>
+
+              <div className="flex justify-between">
+                <span className="text-gray-600 font-bold">Skipped</span>
+                <span>{skippedCount}</span>
+              </div>
             </div>
 
-            <div className="flex justify-between">
-              <span className="text-red-600 font-bold">
-                Missed
-              </span>
-              <span>{incorrectCount}</span>
-            </div>
+            <div className="flex gap-3 mt-auto pt-6">
+              <button
+                onClick={restartSession}
+                className="rounded bg-muted px-6 py-2 font-semibold hover:bg-accent"
+              >
+                Restart
+              </button>
 
-            <div className="flex justify-between">
-              <span className="text-gray-600 font-bold">
-                Skipped
-              </span>
-              <span>{skippedCount}</span>
+              <button
+                onClick={onClose}
+                className="rounded bg-primary text-primary-foreground px-6 py-2 font-semibold"
+              >
+                Close
+              </button>
             </div>
-
-            <button
-              onClick={onClose}
-              className="mt-8 rounded bg-primary text-primary-foreground px-6 py-2 font-semibold"
-            >
-              Close
-            </button>
           </div>
         </div>
       </div>
