@@ -1,6 +1,7 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
+@custom-variant dark (&:is(.dark *));
 
 :root {
   --background: oklch(1 0 0);
@@ -73,7 +74,7 @@
   --sidebar-ring: oklch(0.439 0 0);
 }
 
-:root {
+@theme inline {
   --font-sans: 'Geist', 'Geist Fallback';
   --font-mono: 'Geist Mono', 'Geist Mono Fallback';
   --color-background: var(--background);
@@ -116,12 +117,10 @@
 
 @layer base {
   * {
-    border-color: var(--border);
-    outline-color: color-mix(in oklab, var(--ring) 50%, transparent);
+    @apply border-border outline-ring/50;
   }
   body {
-    background-color: var(--background);
-    color: var(--foreground);
+    @apply bg-background text-foreground;
   }
 }
 
@@ -189,7 +188,7 @@
   }
 
   100% {
-    transform: translateY(300px) rotate(720deg);
+    transform: translateY(300px) rotate(0d30eg);
     opacity: 0;
   }
 }
