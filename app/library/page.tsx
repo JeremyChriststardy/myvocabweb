@@ -1,22 +1,35 @@
-import { Suspense } from "react"
+"use client"
+
 import dynamic from "next/dynamic"
+import { Suspense } from "react"
 
-export const dynamic = "force-dynamic"
+//export const dynamic = "force-dynamic"
 
-// Dynamically import everything with SSR disabled
-const DynamicLibrary = dynamic(
-  () => import("@/components/library-wrapper").then(mod => mod.default),
+// This is the key - dynamically import the ENTIRE page with SSR disabled
+const LibraryPageContent = dynamic(
+  () => import("./library-content"),
   { 
     ssr: false,
-    loading: () => <div className="flex min-h-screen items-center justify-center">Loading...</div>
+    loading: () => (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-lg">Loading library...</div>
+      </div>
+    )
   }
 )
 
 export default function Page() {
-  return <DynamicLibrary />
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <LibraryPageContent />
+    </Suspense>
+  )
 }
 
-/* "use client"
+//*/
+
+/*
+"use client"
 
 
 
@@ -44,5 +57,5 @@ export default function Page() {
     </Suspense>
   )
 }
-*/ 
+// */
 
