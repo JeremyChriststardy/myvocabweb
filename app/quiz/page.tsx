@@ -5,6 +5,9 @@ import { MainLayout } from "@/components/main-layout"
 import { Card, CardContent } from "@/components/ui/card"
 import { HelpCircle } from "lucide-react"
 
+export const dynamic = "force-dynamic"
+
+
 function QuizPage() {
   return (
     <div className="space-y-6">

@@ -6,6 +6,8 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Search } from "lucide-react"
 
+export const dynamic = "force-dynamic"
+
 function SearchPage() {
   return (
     <div className="space-y-6">

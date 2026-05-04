@@ -5,6 +5,8 @@ import { AppProvider } from "@/contexts/app-context"
 import { MainLayout } from "@/components/main-layout"
 import { WordLearningPage } from "@/components/word-learning-page"
 
+export const dynamic = "force-dynamic"
+
 function WordContent() {
   return (
     <AppProvider>
