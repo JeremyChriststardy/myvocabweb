@@ -1,3 +1,19 @@
+"use client"
+
+export const dynamic = "force-dynamic" // 🔥 CRITICAL: disables prerender
+
+import dynamicImport from "next/dynamic"
+
+const LibraryWrapper = dynamicImport(
+  () => import("@/components/library-wrapper"),
+  { ssr: false }
+)
+
+export default function Page() {
+  return <LibraryWrapper />
+}
+//*/
+
 /*
 "use client"
 
@@ -29,10 +45,8 @@ export default function Page() {
 
 //*/
 
-///*
+/*
 "use client"
-
-
 
 import { Suspense } from "react"
 import { AppProvider } from "@/contexts/app-context"

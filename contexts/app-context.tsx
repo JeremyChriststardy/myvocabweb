@@ -1,6 +1,6 @@
 "use client"
 
-import { supabase } from "@/lib/supabase"
+import { getSupabase } from "@/lib/supabase"
 import { createContext, useContext, useState, useCallback, type ReactNode, useEffect, useRef } from "react"
 
 export type WordStatus = "New" | "Learning" | "Mastered" | "Forgotten"
@@ -92,6 +92,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const fetchingRef = useRef(false)
 
+
   // ------------------ STORY ------------------
   const getStory = useCallback(async (wordObj: Word, forceNew: boolean = false, options?: { genre: string; vibe: number; complexity: number; length: string }) => {
     if (!forceNew && storyCache[wordObj.id]) {
@@ -122,6 +123,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // ------------------ WORDS ------------------
   const fetchUserWords = useCallback(async (userId: string) => {
+    const supabase = getSupabase() 
+
     const { data, error } = await supabase
       .from("user_vocabs")
       .select(`
@@ -175,6 +178,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // ------------------ STATS ------------------
   const fetchUserStats = useCallback(async (authUser: any) => {
     if (!authUser) return
+
+    const supabase = getSupabase()
 
     try {
       const [profileResult, totalWordsResult, wordsTodayResult, statusResult] = await Promise.all([
@@ -272,9 +277,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
   let mounted = true
-  
+  const supabase = getSupabase()
+    
   const init = async () => {
     try {
+      
       const { data: { session } } = await supabase.auth.getSession()
       
       if (mounted) {
@@ -308,6 +315,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // ------------------ AUTH ACTIONS ------------------
   const login = useCallback(async (email: string, password: string): Promise<AuthResult> => {
+  const supabase = getSupabase()
+
     const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) return { success: false, error: error.message }
     if (data.user) fetchUserStats(data.user)
@@ -315,6 +324,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [fetchUserStats])
 
   const signup = useCallback(async (username: string, email: string, password: string): Promise<AuthResult> => {
+    const supabase = getSupabase()
+
     const { data, error } = await supabase.auth.signUp({ email, password })
     if (error) return { success: false, error: error.message }
 
@@ -331,12 +342,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const logout = useCallback(async () => {
+    const supabase = getSupabase()
+
     await supabase.auth.signOut()
     setUser(null)
   }, [])
 
   // ------------------ WORD ACTIONS ------------------
   const updateWordStatus = useCallback(async (wordId: string, status: WordStatus) => {
+    const supabase = getSupabase()
     await supabase.from("user_vocabs").update({ status }).eq("id", wordId)
 
     setWords(prev =>
@@ -345,7 +359,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const addFolder = useCallback(async (name: string): Promise<Folder> => {
+    
     if (!user) throw new Error("User not logged in")
+    const supabase = getSupabase()
 
     const { data, error } = await supabase
       .from("user_folders")
@@ -372,6 +388,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const updateFolder = useCallback(async (id: string, name: string): Promise<void> => {
     if (!user) throw new Error("User not logged in")
+    const supabase = getSupabase()
 
     // Optimistic update
     setFolders(prev => prev.map(f => f.id === id ? { ...f, name } : f))
@@ -410,6 +427,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         folderIds: word.folderIds.filter(fId => fId !== id),
       }))
     );
+    const supabase = getSupabase()
 
     // Background deletion
     try {
@@ -436,6 +454,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           : word
       )
     )
+    const supabase = getSupabase()
 
     try {
       const { error } = await supabase

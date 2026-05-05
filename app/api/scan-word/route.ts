@@ -1,7 +1,9 @@
 import { NextRequest } from "next/server";
 import { extractWord } from "@/lib/flash";
-import { supabase } from "@/lib/supabase";
+import { getSupabase } from "@/lib/supabase";
 import sharp from "sharp";
+
+export const dynamic = "force-dynamic" //new
 
 // 1. ADD THIS: Define the CORS headers once so we can reuse them
 const corsHeaders = {
@@ -21,6 +23,8 @@ export async function OPTIONS() {
 }
 
 export async function POST(req: NextRequest) {
+
+  const supabase = getSupabase()
   const sendResponse = (data: any, status = 200) => {
     return new Response(JSON.stringify(data), {
       status,
