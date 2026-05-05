@@ -188,7 +188,7 @@
   }
 
   100% {
-    transform: translateY(300px) rotate(0d30eg);
+    transform: translateY(300px) rotate(720deg);
     opacity: 0;
   }
 }

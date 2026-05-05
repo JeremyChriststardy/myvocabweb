@@ -25,51 +25,54 @@ interface FlashcardModalProps {
 function PieChart({ got, missed, skipped }: { got: number; missed: number; skipped: number }) {
   const total = got + missed + skipped || 1
 
-  const safeAngle = (value: number) => {
-    const angle = (value / total) * 360
-    return angle >= 360 ? 359.999 : angle
-  }
+  const radius = 40
+  const circumference = 2 * Math.PI * radius
 
-  const createArc = (start: number, value: number, color: string) => {
-    const angle = safeAngle(value)
-
-    const r = 40
-    const cx = 50
-    const cy = 50
-
-    const rad = (d: number) => (Math.PI / 180) * d
-
-    const x1 = cx + r * Math.cos(rad(start))
-    const y1 = cy + r * Math.sin(rad(start))
-
-    const x2 = cx + r * Math.cos(rad(start + angle))
-    const y2 = cy + r * Math.sin(rad(start + angle))
-
-    const largeArc = angle > 180 ? 1 : 0
-
-    return (
-      <path
-        d={`M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z`}
-        fill={color}
-        className="pie-slice"
-      />
-    )
-  }
-
-  let start = 0
-  const g = createArc(start, got, "#22c55e")
-  start += safeAngle(got)
-
-  const m = createArc(start, missed, "#ef4444")
-  start += safeAngle(missed)
-
-  const s = createArc(start, skipped, "#a3a3a3")
+  const getOffset = (value: number) =>
+    circumference - (value / total) * circumference
 
   return (
-    <svg width={240} height={240} viewBox="0 0 100 100" className="pie-root">
-      {g}
-      {m}
-      {s}
+    <svg width={240} height={240} viewBox="0 0 100 100">
+      <g transform="rotate(-90 50 50)">
+        {/* GREEN */}
+        <circle
+          cx="50"
+          cy="50"
+          r={radius}
+          stroke="#22c55e"
+          strokeWidth="10"
+          fill="transparent"
+          strokeDasharray={circumference}
+          strokeDashoffset={getOffset(got)}
+          style={{ transition: "stroke-dashoffset 1s ease" }}
+        />
+
+        {/* RED */}
+        <circle
+          cx="50"
+          cy="50"
+          r={radius}
+          stroke="#ef4444"
+          strokeWidth="10"
+          fill="transparent"
+          strokeDasharray={circumference}
+          strokeDashoffset={getOffset(got + missed)}
+          style={{ transition: "stroke-dashoffset 1.4s ease" }}
+        />
+
+        {/* GREY */}
+        <circle
+          cx="50"
+          cy="50"
+          r={radius}
+          stroke="#a3a3a3"
+          strokeWidth="10"
+          fill="transparent"
+          strokeDasharray={circumference}
+          strokeDashoffset={0}
+          style={{ transition: "stroke-dashoffset 1.8s ease" }}
+        />
+      </g>
     </svg>
   )
 }
@@ -252,35 +255,36 @@ export function FlashcardModal({
       : "0"
 
   const renderConfetti = () => {
-    if (!confetti) return null
+  if (!confetti) return null
 
-    const colors = [
-      "#22c55e",
-      "#ef4444",
-      "#3b82f6",
-      "#facc15",
-      "#a855f7",
-    ]
+  const colors = ["#22c55e", "#ef4444", "#3b82f6", "#facc15", "#a855f7"]
 
-    return Array.from({ length: 45 }).map((_, i) => (
-      <div
-        key={i}
-        className="confetti-piece"
-        style={{
-          left: `${Math.random() * 100}%`,
-          background: colors[i % colors.length],
-          animationDelay: `${Math.random()}s`,
-        }}
-      />
-    ))
-  }
+  return (
+    <div className="fixed inset-0 pointer-events-none z-[999] overflow-hidden">
+      {Array.from({ length: 80 }).map((_, i) => (
+        <div
+          key={i}
+          className="absolute w-3 h-6 rounded-sm"
+          style={{
+            left: `${Math.random() * 100}%`,
+            top: "-10px",
+            background: colors[i % colors.length],
+            animation: `confettiFall 2s linear forwards`,
+            animationDelay: `${Math.random()}s`,
+          }}
+        />
+      ))}
+    </div>
+  )
+}
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+      {renderConfetti()}
       <div className="relative bg-card rounded-2xl shadow-2xl px-10 py-8 w-[420px] min-h-[420px] overflow-hidden">
-        {renderConfetti()}
+        
 
-        <div className="grid grid-cols-2 items-center gap-8 h-full">
+        <div className="grid items-center justify-between gap-8 h-full">
           {/* LEFT */}
           <div className="relative flex items-center justify-center">
             <PieChart
@@ -289,7 +293,7 @@ export function FlashcardModal({
               skipped={skippedCount}
             />
 
-            <div className="absolute w-36 h-36 rounded-full bg-white shadow-lg flex flex-col items-center justify-center text-black">
+            <div className="absolute w-28 h-28 rounded-full bg-white shadow-lg flex flex-col items-center justify-center text-black">
               <div className="text-3xl font-bold">
                 {correctCount}/{total}
               </div>
@@ -305,7 +309,7 @@ export function FlashcardModal({
           </div>
 
           {/* RIGHT */}
-          <div className="flex flex-col h-full">
+          <div className="flex flex-col justify-between h-full w-[140px]">
             <div className="flex flex-col gap-3 mt-6">
               <div className="flex justify-between">
                 <span className="text-green-600 font-bold">Got it</span>
@@ -323,7 +327,7 @@ export function FlashcardModal({
               </div>
             </div>
 
-            <div className="flex gap-3 mt-auto pt-6">
+            <div className="flex justify-center gap-3 pt-6">
               <button
                 onClick={restartSession}
                 className="rounded bg-muted px-6 py-2 font-semibold hover:bg-accent"
