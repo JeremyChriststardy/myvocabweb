@@ -10,16 +10,6 @@ import {X,
 import { cn } from "@/lib/utils"
 import { useApp } from "@/contexts/app-context"
 
-const correctSound = useRef<HTMLAudioElement | null>(null)
-const wrongSound = useRef<HTMLAudioElement | null>(null)
-const winSound = useRef<HTMLAudioElement | null>(null)
-
-useEffect(() => {
-  correctSound.current = new Audio("/sounds/ding.mp3")
-  wrongSound.current = new Audio("/sounds/buzz.mp3")
-  winSound.current = new Audio("/sounds/victory.mp3")
-}, [])
-
 const play = (ref: React.RefObject<HTMLAudioElement | null>) => {
   if (!ref.current) return
   ref.current.currentTime = 0
@@ -107,6 +97,25 @@ export function FlashcardModal({
   const [endTime, setEndTime] = useState<number | null>(null)
 
   const allWords = folderId ? getWordsInFolder(folderId) : []
+
+   // ✅ audio refs MUST be inside component
+  const correctSound = useRef<HTMLAudioElement | null>(null)
+  const wrongSound = useRef<HTMLAudioElement | null>(null)
+  const winSound = useRef<HTMLAudioElement | null>(null)
+
+  // ✅ init once
+  useEffect(() => {
+    correctSound.current = new Audio("/sounds/ding.mp3")
+    wrongSound.current = new Audio("/sounds/buzz.mp3")
+    winSound.current = new Audio("/sounds/victory.mp3")
+  }, [])
+
+  // ✅ helper stays inside
+  const play = (ref: React.RefObject<HTMLAudioElement | null>) => {
+    if (!ref.current) return
+    ref.current.currentTime = 0
+    ref.current.play().catch(() => {})
+  }
 
   const words = includeMastered
     ? allWords
