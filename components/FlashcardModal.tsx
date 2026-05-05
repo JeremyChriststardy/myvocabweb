@@ -9,6 +9,7 @@ import {X,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useApp } from "@/contexts/app-context"
+import confetti from "canvas-confetti"; 
 
 const play = (ref: React.RefObject<HTMLAudioElement | null>) => {
   if (!ref.current) return
@@ -21,20 +22,41 @@ interface FlashcardModalProps {
   onClose: () => void
   folderId?: string | null
 }
-
 function PieChart({ got, missed, skipped }: { got: number; missed: number; skipped: number }) {
   const total = got + missed + skipped || 1
-
   const radius = 40
   const circumference = 2 * Math.PI * radius
 
-  const getOffset = (value: number) =>
+  const [gOffset, setGOffset] = useState(circumference)
+  const [mOffset, setMOffset] = useState(circumference)
+  const [sOffset, setSOffset] = useState(circumference)
+
+  const calcOffset = (value: number) =>
     circumference - (value / total) * circumference
 
+  useEffect(() => {
+    // reset
+    setGOffset(circumference)
+    setMOffset(circumference)
+    setSOffset(circumference)
+
+    // animate in sequence (12 o'clock flow)
+    setTimeout(() => {
+      setGOffset(calcOffset(got))
+    }, 100)
+
+    setTimeout(() => {
+      setMOffset(calcOffset(got + missed))
+    }, 900)
+
+    setTimeout(() => {
+      setSOffset(0)
+    }, 1600)
+  }, [got, missed, skipped])
+
   return (
-    <svg width={240} height={240} viewBox="0 0 100 100">
+    <svg width={260} height={260} viewBox="0 0 100 100">
       <g transform="rotate(-90 50 50)">
-        {/* GREEN */}
         <circle
           cx="50"
           cy="50"
@@ -43,11 +65,10 @@ function PieChart({ got, missed, skipped }: { got: number; missed: number; skipp
           strokeWidth="10"
           fill="transparent"
           strokeDasharray={circumference}
-          strokeDashoffset={getOffset(got)}
-          style={{ transition: "stroke-dashoffset 1s ease" }}
+          strokeDashoffset={gOffset}
+          style={{ transition: "stroke-dashoffset 0.8s ease-out" }}
         />
 
-        {/* RED */}
         <circle
           cx="50"
           cy="50"
@@ -56,11 +77,10 @@ function PieChart({ got, missed, skipped }: { got: number; missed: number; skipp
           strokeWidth="10"
           fill="transparent"
           strokeDasharray={circumference}
-          strokeDashoffset={getOffset(got + missed)}
-          style={{ transition: "stroke-dashoffset 1.4s ease" }}
+          strokeDashoffset={mOffset}
+          style={{ transition: "stroke-dashoffset 0.8s ease-out" }}
         />
 
-        {/* GREY */}
         <circle
           cx="50"
           cy="50"
@@ -69,8 +89,8 @@ function PieChart({ got, missed, skipped }: { got: number; missed: number; skipp
           strokeWidth="10"
           fill="transparent"
           strokeDasharray={circumference}
-          strokeDashoffset={0}
-          style={{ transition: "stroke-dashoffset 1.8s ease" }}
+          strokeDashoffset={sOffset}
+          style={{ transition: "stroke-dashoffset 0.8s ease-out" }}
         />
       </g>
     </svg>
@@ -94,7 +114,7 @@ export function FlashcardModal({
   const [showStats, setShowStats] = useState(false)
   const [showMasteredPrompt, setShowMasteredPrompt] = useState(true)
   const [includeMastered, setIncludeMastered] = useState(false)
-  const [confetti, setConfetti] = useState(false)
+  const [boolconfetti, setConfetti] = useState(false)
 
   const [startTime, setStartTime] = useState<number | null>(null)
   const [endTime, setEndTime] = useState<number | null>(null)
@@ -211,6 +231,7 @@ export function FlashcardModal({
     goNext()
   }
 
+
   if (!open || !folderId) return null
 
   if (showMasteredPrompt) {
@@ -255,27 +276,16 @@ export function FlashcardModal({
       : "0"
 
   const renderConfetti = () => {
-  if (!confetti) return null
+  if (!boolconfetti) return null
 
-  const colors = ["#22c55e", "#ef4444", "#3b82f6", "#facc15", "#a855f7"]
-
-  return (
-    <div className="fixed inset-0 pointer-events-none z-[999] overflow-hidden">
-      {Array.from({ length: 80 }).map((_, i) => (
-        <div
-          key={i}
-          className="absolute w-3 h-6 rounded-sm"
-          style={{
-            left: `${Math.random() * 100}%`,
-            top: "-10px",
-            background: colors[i % colors.length],
-            animation: `confettiFall 2s linear forwards`,
-            animationDelay: `${Math.random()}s`,
-          }}
-        />
-      ))}
-    </div>
-  )
+    confetti({
+      particleCount: 100, 
+      spread: 100, 
+      origin: {
+        x: 0, 
+        y: 1,
+      },
+    })
 }
 
   return (
@@ -284,68 +294,61 @@ export function FlashcardModal({
       <div className="relative bg-card rounded-2xl shadow-2xl px-10 py-8 w-[420px] min-h-[420px] overflow-hidden">
         
 
-        <div className="grid items-center justify-between gap-8 h-full">
-          {/* LEFT */}
-          <div className="relative flex items-center justify-center">
-            <PieChart
-              got={correctCount}
-              missed={incorrectCount}
-              skipped={skippedCount}
-            />
+        <div className="grid grid-cols-[1fr_auto] items-center gap-10 h-full">
+  
+  {/* LEFT: chart */}
+  <div className="relative flex items-center justify-center">
+    <PieChart
+      got={correctCount}
+      missed={incorrectCount}
+      skipped={skippedCount}
+    />
 
-            <div className="absolute w-28 h-28 rounded-full bg-white shadow-lg flex flex-col items-center justify-center text-black">
-              <div className="text-3xl font-bold">
-                {correctCount}/{total}
-              </div>
-
-              <div className="text-sm font-medium mt-1">
-                {percent}% correct
-              </div>
-
-              <div className="text-xs text-gray-500 mt-1">
-                {time}s
-              </div>
-            </div>
-          </div>
-
-          {/* RIGHT */}
-          <div className="flex flex-col justify-between h-full w-[140px]">
-            <div className="flex flex-col gap-3 mt-6">
-              <div className="flex justify-between">
-                <span className="text-green-600 font-bold">Got it</span>
-                <span>{correctCount}</span>
-              </div>
-
-              <div className="flex justify-between">
-                <span className="text-red-600 font-bold">Missed</span>
-                <span>{incorrectCount}</span>
-              </div>
-
-              <div className="flex justify-between">
-                <span className="text-gray-600 font-bold">Skipped</span>
-                <span>{skippedCount}</span>
-              </div>
-            </div>
-
-            <div className="flex justify-center gap-3 pt-6">
-              <button
-                onClick={restartSession}
-                className="rounded bg-muted px-6 py-2 font-semibold hover:bg-accent"
-              >
-                Restart
-              </button>
-
-              <button
-                onClick={onClose}
-                className="rounded bg-primary text-primary-foreground px-6 py-2 font-semibold"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
+    <div className="absolute w-36 h-36 rounded-full bg-white flex flex-col items-center justify-center text-black shadow-lg">
+      <div className="text-3xl font-bold">
+        {correctCount}/{total}
       </div>
+      <div className="text-sm mt-1">{percent}% correct</div>
+      <div className="text-xs text-gray-500">{time}s</div>
     </div>
+  </div>
+
+  {/* RIGHT: stats */}
+  <div className="flex flex-col justify-center items-start gap-4 min-w-[140px]">
+    <div className="flex justify-between w-full">
+      <span className="text-green-600 font-bold">Got it</span>
+      <span>{correctCount}</span>
+    </div>
+
+    <div className="flex justify-between w-full">
+      <span className="text-red-600 font-bold">Missed</span>
+      <span>{incorrectCount}</span>
+    </div>
+
+    <div className="flex justify-between w-full">
+      <span className="text-gray-600 font-bold">Skipped</span>
+      <span>{skippedCount}</span>
+    </div>
+
+    <div className="flex gap-3 mt-6 w-full justify-center">
+      <button
+        onClick={restartSession}
+        className="rounded bg-muted px-4 py-2 font-semibold"
+      >
+        Restart
+      </button>
+
+      <button
+        onClick={onClose}
+        className="rounded bg-primary text-primary-foreground px-4 py-2 font-semibold"
+      >
+        Close
+      </button>
+    </div>
+  </div>
+</div>
+</div>
+</div>
   )
 }
 
