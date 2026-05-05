@@ -22,75 +22,68 @@ interface FlashcardModalProps {
   onClose: () => void
   folderId?: string | null
 }
+
 function PieChart({ got, missed, skipped }: { got: number; missed: number; skipped: number }) {
   const total = got + missed + skipped || 1
-  const radius = 40
+  const radius = 32
   const circumference = 2 * Math.PI * radius
 
-  const [gOffset, setGOffset] = useState(circumference)
-  const [mOffset, setMOffset] = useState(circumference)
-  const [sOffset, setSOffset] = useState(circumference)
+  const gLen = (got / total) * circumference
+  const mLen = (missed / total) * circumference
+  const sLen = (skipped / total) * circumference
 
-  const calcOffset = (value: number) =>
-    circumference - (value / total) * circumference
+  const [g, setG] = useState(0)
+  const [m, setM] = useState(0)
+  const [s, setS] = useState(0)
 
   useEffect(() => {
-    // reset
-    setGOffset(circumference)
-    setMOffset(circumference)
-    setSOffset(circumference)
+    setG(0); setM(0); setS(0)
 
-    // animate in sequence (12 o'clock flow)
-    setTimeout(() => {
-      setGOffset(calcOffset(got))
-    }, 100)
-
-    setTimeout(() => {
-      setMOffset(calcOffset(got + missed))
-    }, 900)
-
-    setTimeout(() => {
-      setSOffset(0)
-    }, 1600)
+    setTimeout(() => setG(gLen), 100)
+    setTimeout(() => setM(mLen), 700)
+    setTimeout(() => setS(sLen), 1300)
   }, [got, missed, skipped])
 
   return (
-    <svg width={260} height={260} viewBox="0 0 100 100">
+    <svg width={180} height={180} viewBox="0 0 100 100">
       <g transform="rotate(-90 50 50)">
+        
+        {/* GREEN */}
         <circle
           cx="50"
           cy="50"
           r={radius}
           stroke="#22c55e"
-          strokeWidth="10"
+          strokeWidth="8"
           fill="transparent"
-          strokeDasharray={circumference}
-          strokeDashoffset={gOffset}
-          style={{ transition: "stroke-dashoffset 0.8s ease-out" }}
+          strokeDasharray={`${g} ${circumference}`}
+          style={{ transition: "stroke-dasharray 0.6s ease-out" }}
         />
 
+        {/* RED */}
         <circle
           cx="50"
           cy="50"
           r={radius}
           stroke="#ef4444"
-          strokeWidth="10"
+          strokeWidth="8"
           fill="transparent"
-          strokeDasharray={circumference}
-          strokeDashoffset={mOffset}
-          style={{ transition: "stroke-dashoffset 0.8s ease-out" }}
+          strokeDasharray={`${m} ${circumference}`}
+          strokeDashoffset={-g}
+          style={{ transition: "stroke-dasharray 0.6s ease-out" }}
         />
 
+        {/* GREY */}
         <circle
           cx="50"
           cy="50"
           r={radius}
           stroke="#a3a3a3"
-          strokeWidth="10"
+          strokeWidth="8"
           fill="transparent"
-          strokeDasharray={circumference}
-          strokeDashoffset={sOffset}
-          style={{ transition: "stroke-dashoffset 0.8s ease-out" }}
+          strokeDasharray={`${s} ${circumference}`}
+          strokeDashoffset={-(g + m)}
+          style={{ transition: "stroke-dasharray 0.6s ease-out" }}
         />
       </g>
     </svg>
@@ -279,13 +272,15 @@ export function FlashcardModal({
   if (!boolconfetti) return null
 
     confetti({
-      particleCount: 100, 
-      spread: 100, 
+      particleCount: 190,
+      spread: 150,
+      startVelocity: 50,
       origin: {
-        x: 0, 
-        y: 1,
+        x: 0.5,
+        y: 1, // bottom center
       },
     })
+  
 }
 
   return (
@@ -294,9 +289,9 @@ export function FlashcardModal({
       <div className="relative bg-card rounded-2xl shadow-2xl px-10 py-8 w-[420px] min-h-[420px] overflow-hidden">
         
 
-        <div className="grid grid-cols-[1fr_auto] items-center gap-10 h-full">
+        <div className="grid grid-cols-[auto_140px] gap-6 items-center justify-center">
   
-  {/* LEFT: chart */}
+  {/* CHART */}
   <div className="relative flex items-center justify-center">
     <PieChart
       got={correctCount}
@@ -304,44 +299,35 @@ export function FlashcardModal({
       skipped={skippedCount}
     />
 
-    <div className="absolute w-36 h-36 rounded-full bg-white flex flex-col items-center justify-center text-black shadow-lg">
-      <div className="text-3xl font-bold">
+    <div className="absolute w-28 h-28 rounded-full bg-white flex flex-col items-center justify-center text-black shadow">
+      <div className="text-xl font-bold">
         {correctCount}/{total}
       </div>
-      <div className="text-sm mt-1">{percent}% correct</div>
-      <div className="text-xs text-gray-500">{time}s</div>
+      <div className="text-xs">{percent}%</div>
+      <div className="text-[10px] text-gray-500">{time}s</div>
     </div>
   </div>
 
-  {/* RIGHT: stats */}
-  <div className="flex flex-col justify-center items-start gap-4 min-w-[140px]">
-    <div className="flex justify-between w-full">
-      <span className="text-green-600 font-bold">Got it</span>
+  {/* STATS */}
+  <div className="flex flex-col justify-center gap-3">
+    <div className="flex justify-between">
+      <span className="text-green-600 font-bold">Got</span>
       <span>{correctCount}</span>
     </div>
-
-    <div className="flex justify-between w-full">
+    <div className="flex justify-between">
       <span className="text-red-600 font-bold">Missed</span>
       <span>{incorrectCount}</span>
     </div>
-
-    <div className="flex justify-between w-full">
+    <div className="flex justify-between">
       <span className="text-gray-600 font-bold">Skipped</span>
       <span>{skippedCount}</span>
     </div>
 
-    <div className="flex gap-3 mt-6 w-full justify-center">
-      <button
-        onClick={restartSession}
-        className="rounded bg-muted px-4 py-2 font-semibold"
-      >
+    <div className="flex gap-2 mt-4 justify-center">
+      <button onClick={restartSession} className="px-3 py-1 bg-muted rounded">
         Restart
       </button>
-
-      <button
-        onClick={onClose}
-        className="rounded bg-primary text-primary-foreground px-4 py-2 font-semibold"
-      >
+      <button onClick={onClose} className="px-3 py-1 bg-primary text-white rounded">
         Close
       </button>
     </div>
