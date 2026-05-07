@@ -96,7 +96,7 @@ export function QuizModal({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center">
-      <div className="relative w-[92vw] max-w-7xl h-[88vh] bg-card rounded-3xl shadow-2xl overflow-hidden">
+      <div className="relative w-[92vw] max-w-7xl h-[88vh] bg-card rounded-2xl shadow-2xl overflow-hidden flex flex-col">
 
         {/* CLOSE */}
         <button
@@ -132,21 +132,23 @@ export function QuizModal({
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-2 h-full">
+          <div className="grid grid-cols-2 gap-6 flex-1 overflow-hidden p-6">
 
             {/* STORY SIDE */}
-            <div className="border-r overflow-y-auto p-10">
+            <div className="border rounded-xl bg-background overflow-hidden flex flex-col">
               <h1 className="text-3xl font-bold mb-6">
                 Story
               </h1>
 
-              <div className="leading-8 whitespace-pre-wrap text-lg">
-                {story}
+              <div className="flex-1 overflow-y-auto p-5 prose prose-neutral dark:prose-invert max-w-none">
+                <ReactMarkdown>
+                    {story}
+                </ReactMarkdown>
               </div>
             </div>
 
             {/* QUESTIONS SIDE */}
-            <div className="flex flex-col h-full">
+            <div className="border rounded-xl bg-background overflow-hidden flex flex-col">
 
               <div className="flex-1 overflow-y-auto p-10">
                 <h1 className="text-3xl font-bold mb-8">
