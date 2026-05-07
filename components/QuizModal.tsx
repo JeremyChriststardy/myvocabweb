@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { X } from "lucide-react"
 import { useApp } from "@/contexts/app-context"
+import ReactMarkdown from "react-markdown"
 
 interface QuizModalProps {
   open: boolean
