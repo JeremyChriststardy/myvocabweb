@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { ButtonGroup } from "@/components/ui/button-group"
 import { Input } from "@/components/ui/input"
 import { useApp } from "@/contexts/app-context"
+import { QuizModal } from "@/components/QuizModal"
 
 interface FolderHeaderProps {
   folderId: string

@@ -30,6 +30,7 @@ import {
 import { Folder, Plus, ArrowLeft, Trash2, Layers } from "lucide-react"
 
 import { FlashcardModal } from "@/components/FlashcardModal"
+import { QuizModal } from "@/components/QuizModal"
 
 
 export function LibraryPage() {
@@ -47,9 +48,12 @@ export function LibraryPage() {
   const [folderToDelete, setFolderToDelete] = useState<string | null>(null)
 
   const [flashcardOpen, setFlashcardOpen] = useState(false)
+  const [quizOpen, setQuizOpen] = useState(false)
   const [selectFolderOpen, setSelectFolderOpen] = useState(false)
   const [flashcardFolderId, setFlashcardFolderId] = useState<string | null>(null)
-
+  const [quizFolderId, setQuizFolderId] = useState<string | null>(null)
+  const [selectionMode, setSelectionMode] = useState<"flashcard" | "quiz" | null>(null)
+  
   const selectedFolder = folders.find((f) => f.id === selectedFolderId)
   const wordsInFolder = selectedFolderId ? getWordsInFolder(selectedFolderId) : []
   const dictionaryWords = words
@@ -107,21 +111,47 @@ export function LibraryPage() {
 
     // Handler for flashcards button in FolderHeader
   const handleFlashcards = () => {
-    setFlashcardFolderId(selectedFolderId)
-    setFlashcardOpen(true)
-  }
+  if (!selectedFolderId) return
+
+  setFlashcardFolderId(selectedFolderId)
+  setFlashcardOpen(true)
+}
 
   // Handler for flashcards button in Library (no folder selected)
   const handleLibraryFlashcards = () => {
-    setSelectFolderOpen(true)
-  }
+  setSelectionMode("flashcard")
+  setSelectFolderOpen(true)
+}
+
+  // Handler for quiz
+  const handleQuiz = () => {
+  if (!selectedFolderId) return
+
+  setQuizFolderId(selectedFolderId)
+  setQuizOpen(true)
+}
+
+const handleLibraryQuiz = () => {
+  setSelectionMode("quiz")
+  setSelectFolderOpen(true)
+}
 
   // When a folder is picked from the select modal
   const handlePickFolder = (folderId: string) => {
+  setSelectFolderOpen(false)
+
+  if (selectionMode === "flashcard") {
     setFlashcardFolderId(folderId)
-    setSelectFolderOpen(false)
     setFlashcardOpen(true)
   }
+
+  if (selectionMode === "quiz") {
+    setQuizFolderId(folderId)
+    setQuizOpen(true)
+  }
+
+  setSelectionMode(null)
+}
 
   return (
     <>
@@ -133,7 +163,7 @@ export function LibraryPage() {
             wordCount={wordsInFolder.length}
             onBack={() => setSelectedFolderId(null)}
             onAddWords={handleAddWords}
-            onQuiz={() => {}}
+            onQuiz={handleQuiz}
             isSystemFolder={isSystemFolder(selectedFolder.id)}
             onFlashcards={handleFlashcards}
 
@@ -220,6 +250,14 @@ export function LibraryPage() {
             <Layers className="h-4 w-4" />
             Train with Flashcards
           </Button>
+          <Button
+            variant="outline"
+            className="w-full gap-2 mt-2"
+            onClick={handleLibraryQuiz}
+          >
+            <Layers className="h-4 w-4" />
+            Story Quiz
+          </Button>
         </div>
       )}
 
@@ -252,6 +290,12 @@ export function LibraryPage() {
         folderId={flashcardFolderId}
 
         // Optionally pass folderId or words here
+      />
+       {/* Quiz Modal */}
+      <QuizModal
+        open={quizOpen}
+        onClose={() => setQuizOpen(false)}
+        folderId={quizFolderId}
       />
 
 
