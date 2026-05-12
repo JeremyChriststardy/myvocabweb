@@ -1,6 +1,6 @@
-import { NextRequest } from "next/server";
 import { extractWord } from "@/lib/flash";
 import { getSupabase } from "@/lib/supabase";
+import { NextRequest } from "next/server";
 import sharp from "sharp";
 
 export const dynamic = "force-dynamic" //new
@@ -51,6 +51,17 @@ export async function POST(req: NextRequest) {
       return sendResponse({ ok: false, error: "Missing or invalid image field" }, 400);
     }
 
+    const mode =
+      body.mode === "gaming"
+        ? "gaming"
+        : body.mode === "real_world"
+        ? "real_world"
+        : null;
+
+    if (!mode) {
+      return sendResponse({ ok: false, error: "Missing or invalid mode field" }, 400);
+    }
+
     // Step 1: Detect object from image
     let detectedWord = "storm";
     let detectedDefinition = "blow hard";
@@ -65,7 +76,7 @@ export async function POST(req: NextRequest) {
         .toBuffer();
       const resizedImageBase64 = smallBuffer.toString("base64");
 
-      const flashResult = await extractWord(resizedImageBase64);
+      const flashResult = await extractWord(resizedImageBase64, mode);
       
       detectedWord = (flashResult.word || detectedWord).toLowerCase().trim();
       detectedDefinition = flashResult.definition || detectedDefinition;

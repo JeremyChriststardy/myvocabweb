@@ -1,7 +1,15 @@
-export async function extractWord(base64Image: string) {
+export async function extractWord(
+  base64Image: string,
+  mode: "real_world" | "gaming" = "real_world"
+) {
   if (!process.env.OPENROUTER_API_KEY) {
     throw new Error("OPENROUTER_API_KEY missing");
   }
+
+  const instructions =
+    mode === "gaming"
+      ? "Perform high-precision OCR on this image. Identify the single most prominent word. Focus only on the text and ignore background objects."
+      : "Identify the main object or action in this image. Focus on visual recognition and ignore text unless it is the central subject.";
 
   const geminiResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
@@ -20,7 +28,7 @@ export async function extractWord(base64Image: string) {
           content: [
             {
               type: "text",
-              text: `Identify the main object or action in this image. 
+              text: `${instructions}
               Return a JSON object with these exact keys:
               - "word": The name of the object or action.
               - "definition": A concise dictionary definition.
