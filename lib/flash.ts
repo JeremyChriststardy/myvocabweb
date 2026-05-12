@@ -1,5 +1,5 @@
 export async function extractWord(
-  base64Image: string,
+  image: string,
   mode: "real_world" | "gaming" = "real_world"
 ) {
   if (!process.env.OPENROUTER_API_KEY) {
@@ -11,17 +11,22 @@ export async function extractWord(
       ? "Perform high-precision OCR on this image. Identify the single most prominent word. Focus only on the text and ignore background objects."
       : "Identify the main object or action in this image. Focus on visual recognition and ignore text unless it is the central subject.";
 
+  const imageUrl =
+    image.startsWith("http://") || image.startsWith("https://")
+      ? image
+      : `data:image/jpeg;base64,${image}`;
+
   const geminiResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
       "Content-Type": "application/json",
-      "HTTP-Referer": "https://superexcrescently-unsympathizing-jolyn.ngrok-free.dev", 
+      "HTTP-Referer": "https://superexcrescently-unsympathizing-jolyn.ngrok-free.dev",
       "X-Title": "Vocabulary App",
     },
     body: JSON.stringify({
       // Using the latest stable Flash model
-      model: "xiaomi/mimo-v2-omni", 
+      model: "xiaomi/mimo-v2-omni",
       messages: [
         {
           role: "user",
@@ -38,8 +43,8 @@ export async function extractWord(
             {
               type: "image_url",
               image_url: {
-                url: `data:image/jpeg;base64,${base64Image}`
-              }
+                url: imageUrl,
+              },
             }
           ]
         }

@@ -47,8 +47,16 @@ export async function POST(req: NextRequest) {
       return sendResponse({ ok: false, error: "Invalid JSON body" }, 400);
     }
 
-    if (!body.image || typeof body.image !== "string") {
-      return sendResponse({ ok: false, error: "Missing or invalid image field" }, 400);
+    if (!body.image && !body.imageUrl) {
+      return sendResponse({ ok: false, error: "Missing image or imageUrl field" }, 400);
+    }
+
+    if (body.image && typeof body.image !== "string") {
+      return sendResponse({ ok: false, error: "Invalid image field" }, 400);
+    }
+
+    if (body.imageUrl && typeof body.imageUrl !== "string") {
+      return sendResponse({ ok: false, error: "Invalid imageUrl field" }, 400);
     }
 
     const mode =
@@ -62,13 +70,19 @@ export async function POST(req: NextRequest) {
       return sendResponse({ ok: false, error: "Missing or invalid mode field" }, 400);
     }
 
-    // Step 1: Detect object from image
+    // Step 1: Detect object from image or public URL
     let detectedWord = "storm";
     let detectedDefinition = "blow hard";
     let detectedPOS = "Noun"; 
     let detectedPhonetic = "";
 
-    if (body.image) {
+    if (body.imageUrl) {
+      const flashResult = await extractWord(body.imageUrl, mode);
+      detectedWord = (flashResult.word || detectedWord).toLowerCase().trim();
+      detectedDefinition = flashResult.definition || detectedDefinition;
+      detectedPOS = flashResult.part_of_speech || "Noun"; 
+      detectedPhonetic = flashResult.phonetic || "";
+    } else if (body.image) {
       const buffer = Buffer.from(body.image, "base64");
       const smallBuffer = await sharp(buffer)
         .resize({ width: 640 }) 
@@ -77,7 +91,6 @@ export async function POST(req: NextRequest) {
       const resizedImageBase64 = smallBuffer.toString("base64");
 
       const flashResult = await extractWord(resizedImageBase64, mode);
-      
       detectedWord = (flashResult.word || detectedWord).toLowerCase().trim();
       detectedDefinition = flashResult.definition || detectedDefinition;
       detectedPOS = flashResult.part_of_speech || "Noun"; 
