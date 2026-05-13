@@ -230,15 +230,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
           created_at: string;
         }
 
-        const mappedFolders: Folder[] = (foldersData as FolderDB[]).map((f: FolderDB) => ({
-          id: f.id,
-          name: f.name,
-          isDeletable: f.is_deletable, // Note: f.is_deletable is snake_case from DB
-          createdAt: new Date(f.created_at)
-        }))
+        const mappedFolders: Folder[] = (foldersData as FolderDB[])
+          .filter((f) => f.name !== "Dictionary") 
+          .map((f: FolderDB) => ({
+            id: f.id,
+            name: f.name,
+            isDeletable: f.is_deletable, 
+            createdAt: new Date(f.created_at)
+          }))
         
-        // 🔥 Only use mappedFolders. The SQL trigger handles the "Dictionary" folder creation.
-        setFolders(mappedFolders) 
+        // 2. Prepend the hardcoded initialFolders (which contains the 00000000 UUID)
+        setFolders([...initialFolders, ...mappedFolders]) 
       }
 
       // 🔥 DO NOT BLOCK UI
