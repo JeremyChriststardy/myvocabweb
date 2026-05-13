@@ -95,7 +95,7 @@ export function FlashcardModal({
   onClose,
   folderId,
 }: FlashcardModalProps) {
-  const { getWordsInFolder } = useApp()
+  const { getWordsInFolder, updateStreakAfterActivity } = useApp()
   const modalRef = useRef<HTMLDivElement>(null)
 
   const [flipped, setFlipped] = useState(false)
@@ -173,14 +173,17 @@ export function FlashcardModal({
       window.removeEventListener("keydown", onKeyDown)
   }, [open])
 
-  const handleFinish = () => {
+  const handleFinish = async () => {
     setEndTime(Date.now())
     setShowStats(true)
     play(winSound)
     setConfetti(true)
 
     setTimeout(() => {
-    setConfetti(false)}, 2000)
+      setConfetti(false)
+    }, 2000)
+
+    void updateStreakAfterActivity()
   }
   const restartSession = () => {
   setFlipped(false)

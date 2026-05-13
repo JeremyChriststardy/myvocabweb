@@ -24,7 +24,7 @@ export function QuizModal({
   onClose,
   folderId,
 }: QuizModalProps) {
-  const { getWordsInFolder } = useApp()
+  const { getWordsInFolder, updateStreakAfterActivity } = useApp()
 
   const [loading, setLoading] = useState(false)
 
@@ -199,9 +199,10 @@ export function QuizModal({
               {/* SUBMIT */}
               <div className="border-t p-6 flex justify-end">
                 <button
-                  onClick={() =>
+                  onClick={async () => {
                     setShowResults(true)
-                  }
+                    void updateStreakAfterActivity()
+                  }}
                   className="px-8 py-3 rounded-xl bg-primary text-primary-foreground font-semibold"
                 >
                   Submit Quiz

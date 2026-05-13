@@ -67,6 +67,7 @@ interface AppContextType {
   getRecentWords: () => Word[]
   getRecentFolders: () => Folder[]
   getStory: (word: Word, forceNew?: boolean, options?: { genre: string; vibe: number; complexity: number; length: string }) => Promise<string>;
+  updateStreakAfterActivity: () => Promise<void>
   isSystemFolder: (folderId: string) => boolean
 }
 
@@ -255,6 +256,71 @@ export function AppProvider({ children }: { children: ReactNode }) {
       console.error(error)
     }
   }, [])
+
+  const formatLocalDate = (date: Date) => {
+    const pad = (value: number) => String(value).padStart(2, "0")
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+  }
+
+  const parseLocalDate = (value: string) => {
+    const [year, month, day] = value.split("-").map(Number)
+    return new Date(year, month - 1, day)
+  }
+
+  const updateStreakAfterActivity = useCallback(async () => {
+    if (!user) return
+
+    const supabase = getSupabase()
+    const { data: profileData, error } = await supabase
+      .from("profiles")
+      .select("streak_days, last_active_date")
+      .eq("id", user.id)
+      .single()
+
+    if (error || !profileData) {
+      console.error("Failed to fetch profile streak data:", error)
+      return
+    }
+
+    const today = formatLocalDate(new Date())
+    const lastActive = profileData.last_active_date
+      ? formatLocalDate(new Date(profileData.last_active_date))
+      : null
+
+    if (lastActive === today) {
+      return
+    }
+
+    const todayDate = parseLocalDate(today)
+    const lastActiveDate = lastActive
+      ? parseLocalDate(lastActive)
+      : null
+
+    const diffDays = lastActiveDate
+      ? Math.round((todayDate.getTime() - lastActiveDate.getTime()) / (1000 * 60 * 60 * 24))
+      : Infinity
+
+    const newStreak = diffDays === 1
+      ? (profileData.streak_days ?? 0) + 1
+      : 1
+
+    const { error: updateError } = await supabase
+      .from("profiles")
+      .update({
+        streak_days: newStreak,
+        last_active_date: today,
+      })
+      .eq("id", user.id)
+
+    if (updateError) {
+      console.error("Failed to update user streak:", updateError)
+      return
+    }
+
+    setUser((current) =>
+      current ? { ...current, streakDays: newStreak } : current
+    )
+  }, [user])
 
   // ------------------ AUTH ------------------
   const handleAuth = useCallback(async (session: any) => {
@@ -531,6 +597,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         getRecentWords,
         getRecentFolders,
         getStory,
+        updateStreakAfterActivity,
         isSystemFolder,
       }}
     >

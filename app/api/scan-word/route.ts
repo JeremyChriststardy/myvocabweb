@@ -12,6 +12,42 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
 };
 
+// Helper function to generate embeddings via OpenRouter
+async function generateEmbedding(text: string): Promise<number[] | null> {
+  try {
+    const response = await fetch("https://openrouter.ai/api/v1/embeddings", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://myvocabweb.vercel.app",
+        "X-Title": "MyVocabApp",
+      },
+      body: JSON.stringify({
+        model: "qwen/qwen3-embedding-4b",
+        input: text.trim(),
+        dimensions: 768,
+        provider: {
+          "sort": "throughput", // This tells OpenRouter to pick the most stable path
+          "allow_fallbacks": true
+        }
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`❌ OpenRouter Error (${response.status}):`, errorText);
+      throw new Error(`OpenRouter failed: ${response.status} - ${errorText}`);
+    }
+
+    const embeddingJson = await response.json();
+    return embeddingJson?.data?.[0]?.embedding || null;
+  } catch (err) {
+    console.error("❌ Embedding generation failed:", err);
+    throw err;
+  }
+}
+
 
 // 2. ADD THIS: Handle the "Preflight" OPTIONS request
 // Android/iOS fetch will send an OPTIONS request first. If this is missing, the POST fails.
@@ -97,91 +133,123 @@ export async function POST(req: NextRequest) {
       detectedPhonetic = flashResult.phonetic || "";
     }
     
-    // --- STEP 2: THE "MATCH CHECK" ---
-    const { data: matches, error: matchError } = await supabase
+    // ==================== TIER 1: MASTER SEARCH ====================
+    const { data: masterMatches, error: masterError } = await supabase
       .from("dictionary_entries")
       .select("*") 
       .eq("word", detectedWord)
       .eq("part_of_speech", detectedPOS);
 
-    if (matchError) throw matchError;
+    if (masterError) throw masterError;
 
-    // CASE A: UNIQUE MATCH
-    if (matches?.length === 1) {
-      return sendResponse({ ok: true, result: { ...matches[0], phonetic: detectedPhonetic } });
-    }
-
-    // --- STEPS 3 & 4: THE "VECTOR DECIDER" ---
-    const response = await fetch("https://openrouter.ai/api/v1/embeddings", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
-        "Content-Type": "application/json",
-        "HTTP-Referer": "https://myvocabweb.vercel.app",
-        "X-Title": "MyVocabApp",
-      },
-      body: JSON.stringify({
-        model: "qwen/qwen3-embedding-4b",
-        input: detectedDefinition.trim(),
-        dimensions: 768,
-        provider: {
-        "sort": "throughput", // This tells OpenRouter to pick the most stable path
-        "allow_fallbacks": true
-        }
-      })
-    });
-
-    // DEBUG: Let's see exactly what OpenRouter says
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`❌ OpenRouter Error (${response.status}):`, errorText);
-      throw new Error(`OpenRouter failed: ${response.status} - ${errorText}`);
-    }
-
-    const embeddingJson = await response.json();
-    const queryVector = embeddingJson?.data?.[0]?.embedding;
-
-    // CASE B: ZERO MATCHES
-    if (!matches || matches.length === 0) {
-      const { data: newEntry, error: insertError } = await supabase
-        .from("community_dictionary")
-        .insert({
-          word: detectedWord,
-          definition: detectedDefinition,
-          part_of_speech: detectedPOS,
-          embedding: queryVector 
-        })
-        .select()
-        .single();
-
-      if (insertError) console.error("❌ Community Save Error:", insertError);
-
+    // TIER 1A: Exactly one match in master dictionary
+    if (masterMatches?.length === 1) {
+      console.log("✅ Tier 1A: Found exactly 1 match in master dictionary");
       return sendResponse({ 
         ok: true, 
-        result: { ...(newEntry || { word: detectedWord, definition: detectedDefinition, part_of_speech: detectedPOS }), phonetic: detectedPhonetic },
-        source: "community" 
+        result: { ...masterMatches[0], phonetic: detectedPhonetic },
+        source: "master"
       });
     }
 
+    // TIER 1B: Multiple matches in master dictionary - need embedding to pick the best
+    if (masterMatches && masterMatches.length > 1) {
+      console.log(`⚖️ Tier 1B: Found ${masterMatches.length} matches in master dictionary, generating embedding...`);
+      
+      const queryVector = await generateEmbedding(detectedDefinition);
+      if (!queryVector) {
+        throw new Error("Failed to generate embedding");
+      }
+
+      const matchIds = masterMatches.map(m => m.id);
+      const { data: bestMatch, error: vectorError } = await supabase.rpc('get_best_match', {
+        query_embedding: queryVector,
+        match_ids: matchIds
+      });
+
+      if (vectorError) throw vectorError;
+
+      const result = Array.isArray(bestMatch) ? bestMatch[0] : bestMatch;
+      console.log("✅ Tier 1B: Returned best match from master dictionary");
+      return sendResponse({ 
+        ok: true, 
+        result: { ...result, phonetic: detectedPhonetic },
+        source: "master"
+      });
+    }
+
+    // ==================== TIER 2: COMMUNITY SEARCH ====================
+    console.log("🔍 Tier 1 returned 0 results, proceeding to community search...");
+    const { data: communityMatches, error: communityError } = await supabase
+      .from("community_dictionary")
+      .select("*")
+      .eq("word", detectedWord)
+      .eq("part_of_speech", detectedPOS);
+
+    if (communityError) throw communityError;
+
+    // TIER 2A: Exactly one match in community dictionary
+    if (communityMatches?.length === 1) {
+      console.log("✅ Tier 2A: Found exactly 1 match in community dictionary");
+      return sendResponse({ 
+        ok: true, 
+        result: { ...communityMatches[0], phonetic: detectedPhonetic },
+        source: "community"
+      });
+    }
+
+    // TIER 2B: Multiple matches in community dictionary - need embedding to pick the best
+    if (communityMatches && communityMatches.length > 1) {
+      console.log(`⚖️ Tier 2B: Found ${communityMatches.length} matches in community dictionary, generating embedding...`);
+      
+      const queryVector = await generateEmbedding(detectedDefinition);
+      if (!queryVector) {
+        throw new Error("Failed to generate embedding");
+      }
+
+      const matchIds = communityMatches.map(m => m.id);
+      const { data: bestMatch, error: vectorError } = await supabase.rpc('get_best_community_match', {
+        query_embedding: queryVector,
+        match_ids: matchIds
+      });
+
+      if (vectorError) throw vectorError;
+
+      const result = Array.isArray(bestMatch) ? bestMatch[0] : bestMatch;
+      console.log("✅ Tier 2B: Returned best match from community dictionary");
+      return sendResponse({ 
+        ok: true, 
+        result: { ...result, phonetic: detectedPhonetic },
+        source: "community"
+      });
+    }
+
+    // ==================== TIER 3: FALLBACK (INSERT NEW ENTRY) ====================
+    console.log("📝 Tier 2 returned 0 results, creating new entry in community dictionary...");
+    
+    const queryVector = await generateEmbedding(detectedDefinition);
     if (!queryVector) {
       throw new Error("Failed to generate embedding");
     }
 
-    // CASE C: MULTIPLE MATCHES
-    const matchIds = matches.map(m => m.id);
-    const { data: bestMatch, error: vectorError } = await supabase.rpc('get_best_match', {
-      query_embedding: queryVector,
-      match_ids: matchIds
-    });
+    const { data: newEntry, error: insertError } = await supabase
+      .from("community_dictionary")
+      .insert({
+        word: detectedWord,
+        definition: detectedDefinition,
+        part_of_speech: detectedPOS,
+        embedding: queryVector 
+      })
+      .select()
+      .single();
 
-    if (vectorError) throw vectorError;
+    if (insertError) console.error("❌ Community Save Error:", insertError);
 
-    const result = Array.isArray(bestMatch) ? bestMatch[0] : bestMatch;
-
+    console.log("✅ Tier 3: Created new entry in community dictionary");
     return sendResponse({ 
       ok: true, 
-      result: { ...result, phonetic: detectedPhonetic },
-      source: "master"
+      result: { ...(newEntry || { word: detectedWord, definition: detectedDefinition, part_of_speech: detectedPOS }), phonetic: detectedPhonetic },
+      source: "community_created"
     });
 
   } catch (err) {
