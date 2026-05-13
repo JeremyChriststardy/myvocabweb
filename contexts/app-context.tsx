@@ -148,7 +148,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         image_path: v.image_path || "",
         displayUrl: finalDisplayUrl,
         status: v.status as WordStatus,
-        folderIds: ["dictionary"],
+        folderIds: Array.isArray(v.folder_ids)
+          ? v.folder_ids.map((folderId: any) => String(folderId))
+          : ["dictionary"],
         createdAt: new Date(v.created_at),
         part_of_speech: v.part_of_speech || "Noun",
       }
