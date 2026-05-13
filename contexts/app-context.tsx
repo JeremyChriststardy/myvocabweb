@@ -69,6 +69,7 @@ interface AppContextType {
   getStory: (word: Word, forceNew?: boolean, options?: { genre: string; vibe: number; complexity: number; length: string }) => Promise<string>;
   updateStreakAfterActivity: () => Promise<void>
   isSystemFolder: (folderId: string) => boolean
+  addWordToState: (word: Word) => void
 }
 
 const NIL_UUID = "00000000-0000-0000-0000-000000000000"
@@ -142,6 +143,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
         ? supabase.storage.from("captures").getPublicUrl(v.image_path).data.publicUrl
         : "/placeholder.svg?height=60&width=60"
 
+      const parsedFolders: string[] = Array.isArray(v.folder_ids)
+        ? v.folder_ids.filter((id: any) => id != null).map(String)
+        : []
+
+      if (!parsedFolders.includes(NIL_UUID)) {
+        parsedFolders.push(NIL_UUID)
+      }
+
       return {
         id: v.vocab_id,
         word: v.word || "Unknown Word",
@@ -150,9 +159,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         image_path: v.image_path || "",
         displayUrl: finalDisplayUrl,
         status: v.status as WordStatus,
-        folderIds: v.folder_ids
-          ? v.folder_ids.map((id: any) => String(id))
-          : ["00000000-0000-0000-0000-000000000000"],
+        folderIds: parsedFolders,
         createdAt: new Date(v.created_at),
         part_of_speech: v.part_of_speech || "Noun",
       }
@@ -558,6 +565,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return folderId === "00000000-0000-0000-0000-000000000000" || folder?.name === "Dictionary"
   }, [folders])
 
+  const addWordToState = useCallback((newWord: Word) => {
+    setWords(prev => [newWord, ...prev])
+  }, [])
+
   return (
     <AppContext.Provider
       value={{
@@ -584,6 +595,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         getStory,
         updateStreakAfterActivity,
         isSystemFolder,
+        addWordToState,
       }}
     >
       {children}
