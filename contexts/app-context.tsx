@@ -124,52 +124,33 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // ------------------ WORDS ------------------
   const fetchUserWords = useCallback(async (userId: string) => {
-    const supabase = getSupabase() 
+    const supabase = getSupabase()
 
-    const { data, error } = await supabase
-      .from("user_vocabs")
-      .select(`
-        id,
-        status,
-        created_at,
-        image_path,
-        phonetic,
-        dictionary_entries (
-          word,
-          definition,
-          part_of_speech
-        ),
-        folder_words (
-          folder_id
-        )
-      `)
-      .eq("user_id", userId)
+    const { data, error } = await supabase.rpc("get_user_history", {
+      p_user_id: userId,
+    })
 
-    if (error) return
+    if (error) {
+      console.error("Error fetching history via RPC:", error)
+      return
+    }
 
     const formattedWords: Word[] = (data || []).map((v: any) => {
-      const entry = v.dictionary_entries
-
-      const finalDisplayUrl = v.image_path 
-        ? supabase.storage.from('captures').getPublicUrl(v.image_path).data.publicUrl
+      const finalDisplayUrl = v.image_path
+        ? supabase.storage.from("captures").getPublicUrl(v.image_path).data.publicUrl
         : "/placeholder.svg?height=60&width=60"
-      // 1. Get IDs from the folder_words join table
-      const joinedFolderIds = v.folder_words?.map((fw: any) => fw.folder_id) || []
 
-      // 2. Combine with "dictionary" to ensure every word stays in the main list.
-      // We use a Set to prevent duplicate IDs if "dictionary" is already in the DB.
-      const uniqueFolderIds = Array.from(new Set(["dictionary", ...joinedFolderIds]))
       return {
-        id: v.id,
-        word: entry?.word || "Unknown Word",
+        id: v.vocab_id,
+        word: v.word || "Unknown Word",
         phonetic: v.phonetic || "",
-        definition: entry?.definition || "No definition available",
+        definition: v.definition || "No definition available",
         image_path: v.image_path || "",
         displayUrl: finalDisplayUrl,
         status: v.status as WordStatus,
-        folderIds: v.folder_words ? v.folder_words.map((fw: any) => fw.folder_id) : ["dictionary"],
+        folderIds: ["dictionary"],
         createdAt: new Date(v.created_at),
-        part_of_speech: entry?.part_of_speech || "Noun",
+        part_of_speech: v.part_of_speech || "Noun",
       }
     })
 
