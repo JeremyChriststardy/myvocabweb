@@ -71,9 +71,11 @@ interface AppContextType {
   isSystemFolder: (folderId: string) => boolean
 }
 
+const NIL_UUID = "00000000-0000-0000-0000-000000000000"
+
 const initialFolders: Folder[] = [
   {
-    id: "dictionary",
+    id: "00000000-0000-0000-0000-000000000000",
     name: "Dictionary",
     isDeletable: false,
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 30),
@@ -148,9 +150,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         image_path: v.image_path || "",
         displayUrl: finalDisplayUrl,
         status: v.status as WordStatus,
-        folderIds: Array.isArray(v.folder_ids)
-          ? v.folder_ids.map((folderId: any) => String(folderId))
-          : ["dictionary"],
+        folderIds: v.folder_ids
+          ? v.folder_ids.map((id: any) => String(id))
+          : ["00000000-0000-0000-0000-000000000000"],
         createdAt: new Date(v.created_at),
         part_of_speech: v.part_of_speech || "Noun",
       }
@@ -553,7 +555,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const isSystemFolder = useCallback((folderId: string) => {
     const folder = folders.find(f => f.id === folderId)
-    return folderId === "dictionary" || folder?.name === "Dictionary"
+    return folderId === "00000000-0000-0000-0000-000000000000" || folder?.name === "Dictionary"
   }, [folders])
 
   return (
