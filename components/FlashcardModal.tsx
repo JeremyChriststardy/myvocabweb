@@ -286,59 +286,56 @@ export function FlashcardModal({
   
 }
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-      {renderConfetti()}
-      <div className="relative bg-card rounded-2xl shadow-2xl px-10 py-8 w-[420px] min-h-[420px] overflow-hidden">
-        
-
-        <div className="grid grid-cols-[auto_140px] gap-6 items-center justify-center">
-  
-  {/* CHART */}
-  <div className="relative flex items-center justify-center">
-    <PieChart
-      got={correctCount}
-      missed={incorrectCount}
-      skipped={skippedCount}
-    />
-
-    <div className="absolute w-28 h-28 rounded-full bg-white flex flex-col items-center justify-center text-black shadow">
-      <div className="text-xl font-bold">
-        {correctCount}/{total}
+  // ...inside if (showStats) { ... return ( ... ) }
+return (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+    {renderConfetti()}
+    <div className="relative bg-card rounded-2xl shadow-2xl px-10 py-8 w-[420px] min-h-[420px] overflow-hidden flex flex-col items-center justify-center">
+      <div className="flex flex-col items-center justify-center w-full h-full gap-8">
+        <div className="flex flex-row items-center justify-center gap-8">
+          {/* CHART */}
+          <div className="relative flex items-center justify-center">
+            <PieChart
+              got={correctCount}
+              missed={incorrectCount}
+              skipped={skippedCount}
+            />
+            <div className="absolute w-28 h-28 rounded-full bg-white flex flex-col items-center justify-center text-black shadow">
+              <div className="text-xl font-bold">
+                {correctCount}/{total}
+              </div>
+              <div className="text-xs">{percent}%</div>
+              <div className="text-[10px] text-gray-500">{time}s</div>
+            </div>
+          </div>
+          {/* STATS */}
+          <div className="flex flex-col justify-center gap-3 min-w-[100px]">
+            <div className="flex justify-between">
+              <span className="text-green-600 font-bold">Got</span>
+              <span>{correctCount}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-red-600 font-bold">Missed</span>
+              <span>{incorrectCount}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-600 font-bold">Skipped</span>
+              <span>{skippedCount}</span>
+            </div>
+          </div>
+        </div>
+        <div className="flex gap-2 mt-4 justify-center">
+          <button onClick={restartSession} className="px-3 py-1 bg-muted rounded">
+            Restart
+          </button>
+          <button onClick={onClose} className="px-3 py-1 bg-primary text-white rounded">
+            Close
+          </button>
+        </div>
       </div>
-      <div className="text-xs">{percent}%</div>
-      <div className="text-[10px] text-gray-500">{time}s</div>
     </div>
   </div>
-
-  {/* STATS */}
-  <div className="flex flex-col justify-center gap-3">
-    <div className="flex justify-between">
-      <span className="text-green-600 font-bold">Got</span>
-      <span>{correctCount}</span>
-    </div>
-    <div className="flex justify-between">
-      <span className="text-red-600 font-bold">Missed</span>
-      <span>{incorrectCount}</span>
-    </div>
-    <div className="flex justify-between">
-      <span className="text-gray-600 font-bold">Skipped</span>
-      <span>{skippedCount}</span>
-    </div>
-
-    <div className="flex gap-2 mt-4 justify-center">
-      <button onClick={restartSession} className="px-3 py-1 bg-muted rounded">
-        Restart
-      </button>
-      <button onClick={onClose} className="px-3 py-1 bg-primary text-white rounded">
-        Close
-      </button>
-    </div>
-  </div>
-</div>
-</div>
-</div>
-  )
+)
 }
 
   return (
